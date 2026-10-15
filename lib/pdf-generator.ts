@@ -1313,20 +1313,6 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
       { label: 'Largura', value: `${finalDims.widthMm} mm` },
       { label: 'Altura', value: `${finalDims.heightMm} mm` },
       {
-        label: 'Ombreira Esquerda',
-        value:
-          door.tubeLeft && door.tubeLeft !== 'Nenhum'
-            ? `${door.tubeLeft}${finalDims.leftDeductMm > 0 ? ` · -${finalDims.leftDeductMm} mm` : ''}`
-            : `${door.leftShadeMm} mm`,
-      },
-      {
-        label: 'Ombreira Direita',
-        value:
-          door.tubeRight && door.tubeRight !== 'Nenhum'
-            ? `${door.tubeRight}${finalDims.rightDeductMm > 0 ? ` · -${finalDims.rightDeductMm} mm` : ''}`
-            : `${door.rightShadeMm} mm`,
-      },
-      {
         label: 'Padieira',
         value:
           door.header !== 'Nenhum'

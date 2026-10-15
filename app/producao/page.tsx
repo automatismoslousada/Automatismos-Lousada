@@ -267,18 +267,6 @@ function DoorSummary({
             <b>Altura:</b> {finalDims.heightMm} mm
           </p>
           <p>
-            <b>Ombreira Esquerda:</b>{' '}
-            {door.tubeLeft && door.tubeLeft !== 'Nenhum'
-              ? `${door.tubeLeft}${finalDims.leftDeductMm > 0 ? ` · -${finalDims.leftDeductMm} mm` : ''}`
-              : `${door.leftShadeMm} mm`}
-          </p>
-          <p>
-            <b>Ombreira Direita:</b>{' '}
-            {door.tubeRight && door.tubeRight !== 'Nenhum'
-              ? `${door.tubeRight}${finalDims.rightDeductMm > 0 ? ` · -${finalDims.rightDeductMm} mm` : ''}`
-              : `${door.rightShadeMm} mm`}
-          </p>
-          <p>
             <b>Padieira:</b>{' '}
             {door.header !== 'Nenhum'
               ? `${door.header}${finalDims.topDeductMm > 0 ? ` · -${finalDims.topDeductMm} mm` : ''}`

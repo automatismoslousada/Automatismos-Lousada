@@ -305,6 +305,7 @@ function drawClientInfoBox(
 // Técnica de Fabrico e o Orçamento comercial, para os dois documentos ficarem fiéis ao 3D.
 // Devolve o Y seguinte, logo depois da caixa do desenho.
 function drawDoorDiagram(doc: jsPDF, order: Order, startY: number, doorBadgeDataUrl: string | null): number {
+  const finalDims = finalOpeningDimensions(order)
   const pageWidth = doc.internal.pageSize.getWidth()
   const drawBoxX = 14
   const drawBoxY = startY
@@ -533,14 +534,14 @@ function drawDoorDiagram(doc: jsPDF, order: Order, startY: number, doorBadgeData
   doc.line(doorX, dimY, doorX + dW, dimY)
   doc.line(doorX, dimY - 1.5, doorX, dimY + 1.5)
   doc.line(doorX + dW, dimY - 1.5, doorX + dW, dimY + 1.5)
-  doc.text(`L: ${order.widthMm} mm`, doorCenterX, dimY + 3.2, { align: 'center' })
+  doc.text(`L: ${finalDims.widthMm} mm`, doorCenterX, dimY + 3.2, { align: 'center' })
 
   // Cota Lateral: ALTURA DA PORTA
   const dimX = doorX + dW + (tubeRight ? 7 : 4)
   doc.line(dimX, doorY, dimX, doorY + dH)
   doc.line(dimX - 1.5, doorY, dimX + 1.5, doorY)
   doc.line(dimX - 1.5, doorY + dH, dimX + 1.5, doorY + dH)
-  doc.text(`H: ${order.heightMm} mm`, dimX + 1.5, doorY + dH / 2 + 1)
+  doc.text(`H: ${finalDims.heightMm} mm`, dimX + 1.5, doorY + dH / 2 + 1)
 
   // Cota Superior: PADIEIRA
   doc.setDrawColor(220, 38, 38) // Vermelho

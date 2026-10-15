@@ -1,8 +1,12 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import { db } from './neon'
 import { users as usersTable } from './schema'
 import { User, UserRole } from './types'
 import { hashPassword, verifyPassword } from './password'
+
+// Dias de inatividade (sem encomenda/orçamento) a partir dos quais uma conta Cliente perde o
+// acesso automaticamente — ver revokeInactiveClients.
+const CLIENT_INACTIVITY_DAYS = 30
 
 function toUser(row: typeof usersTable.$inferSelect): User {
   return {
@@ -141,4 +145,24 @@ export async function verifyCredentials(
   if (row.role !== 'admin' && !row.ordersAccess) return { ok: false, reason: 'disabled' }
 
   return { ok: true, user: toUser(row) }
+}
+
+// Desativa automaticamente o acesso de contas Cliente (role "operador") sem nenhuma
+// encomenda/orçamento nos últimos CLIENT_INACTIVITY_DAYS dias — a data de referência é a última
+// encomenda/orçamento criado por essa conta ou, se nunca criou nenhum, a data de criação da
+// própria conta. Chamado pelo cron em app/api/cron/revoke-inactive-clients/route.ts; devolve as
+// contas que foram desativadas nesta execução, para o endpoint poder reportar/registar.
+export async function revokeInactiveClients(): Promise<Pick<User, 'id' | 'name' | 'email'>[]> {
+  const rows = await db.execute<{ id: string; name: string; email: string }>(sql`
+    update users
+    set orders_access = false, updated_at = now()
+    where role = 'operador'
+      and orders_access = true
+      and coalesce(
+        (select max(o.created_at) from orders o where o.created_by_user_id = users.id),
+        users.created_at
+      ) < now() - interval '1 day' * ${CLIENT_INACTIVITY_DAYS}
+    returning id, name, email
+  `)
+  return rows.rows
 }

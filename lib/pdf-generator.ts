@@ -1310,11 +1310,29 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
     const finalDims = finalOpeningDimensions(door)
     const panels = panelBreakdown(finalDims.heightMm)
     const painelFields: FieldLine[] = [
-      { label: 'Largura', value: `${door.widthMm} mm` },
-      { label: 'Altura', value: `${door.heightMm} mm` },
-      { label: 'Padieira', value: `${finalDims.topDeductMm} mm` },
-      { label: 'Largura Final', value: `${finalDims.widthMm} mm` },
-      { label: 'Altura Final', value: `${finalDims.heightMm} mm` },
+      { label: 'Largura', value: `${finalDims.widthMm} mm` },
+      { label: 'Altura', value: `${finalDims.heightMm} mm` },
+      {
+        label: 'Ombreira Esquerda',
+        value:
+          door.tubeLeft && door.tubeLeft !== 'Nenhum'
+            ? `${door.tubeLeft}${finalDims.leftDeductMm > 0 ? ` · -${finalDims.leftDeductMm} mm` : ''}`
+            : `${door.leftShadeMm} mm`,
+      },
+      {
+        label: 'Ombreira Direita',
+        value:
+          door.tubeRight && door.tubeRight !== 'Nenhum'
+            ? `${door.tubeRight}${finalDims.rightDeductMm > 0 ? ` · -${finalDims.rightDeductMm} mm` : ''}`
+            : `${door.rightShadeMm} mm`,
+      },
+      {
+        label: 'Padieira',
+        value:
+          door.header !== 'Nenhum'
+            ? `${door.header}${finalDims.topDeductMm > 0 ? ` · -${finalDims.topDeductMm} mm` : ''}`
+            : `${door.paddingMm} mm`,
+      },
       { label: 'Largura de Corte', value: `${door.productionCutWidthMm ?? finalDims.widthMm + 30} mm` },
       { label: 'Painel', value: modelLabels[door.model] || door.model },
       { label: 'Cor', value: door.colorCode },

@@ -962,7 +962,9 @@ function ProducaoBoard({ user, onLogout }: { user: User; onLogout: () => void })
                       <td className="px-4 py-3 font-semibold text-[#152126]">{order.client}</td>
                       <td className="px-4 py-3 text-[#2d3a33]">{finalDims.widthMm} mm</td>
                       <td className="px-4 py-3 text-[#2d3a33]">{finalDims.heightMm} mm</td>
-                      <td className="px-4 py-3 text-[#2d3a33]">{finalDims.topDeductMm} mm</td>
+                      <td className="px-4 py-3 text-[#2d3a33]">
+                        {door.header !== 'Nenhum' ? finalDims.topDeductMm : door.paddingMm} mm
+                      </td>
                       <td className="px-4 py-3 text-[#2d3a33]">{door.colorCode}</td>
                       <td className="px-4 py-3 text-[#2d3a33]">{door.area.toFixed(2)}</td>
                       <td className="px-4 py-3">

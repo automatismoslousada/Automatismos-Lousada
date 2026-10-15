@@ -4936,7 +4936,7 @@ function StockPanel({ user }: { user: User }) {
     )
   }
 
-  // Carrinho de compras — só para comercial/cliente; o admin não compra, só gere o catálogo.
+  // Carrinho de compras — comercial, cliente (operador) e admin podem comprar; o admin também gere o catálogo.
   const [cart, setCart] = useState<Record<string, number>>({})
   // Só para artigos ao metro: comprimento de cada peça (ex: 2 tubos de 2m => cart[id]=2, cartMeters[id]=2).
   const [cartMeters, setCartMeters] = useState<Record<string, number>>({})
@@ -4960,7 +4960,7 @@ function StockPanel({ user }: { user: User }) {
   const [createdStockOrder, setCreatedStockOrder] = useState<StockOrder | null>(null)
 
   useEffect(() => {
-    if (user.role !== 'comercial') return
+    if (user.role !== 'comercial' && user.role !== 'admin') return
     fetch('/api/clients')
       .then((res) => res.json())
       .then((data) => {
@@ -5542,7 +5542,7 @@ function StockPanel({ user }: { user: User }) {
                   {p.price != null && p.unit === 'm' && <span className="text-xs font-semibold">/m</span>}
                   {p.price != null && p.unit === 'm2' && <span className="text-xs font-semibold">/m²</span>}
                 </p>
-                {!isAdmin && p.price != null && (
+                {p.price != null && (
                   cart[p.id] ? (
                     <div className="flex items-center gap-1.5">
                       <button
@@ -5873,7 +5873,7 @@ function StockPanel({ user }: { user: User }) {
               </div>
             </div>
 
-            {user.role === 'comercial' ? (
+            {user.role === 'comercial' || user.role === 'admin' ? (
               <div className="relative flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-[#2d3a33]">Cliente (carteira)</label>
                 <input

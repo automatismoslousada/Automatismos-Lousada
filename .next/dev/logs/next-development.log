@@ -1,0 +1,5 @@
+{"timestamp":"00:00:02.099","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:19.837","source":"Server","level":"LOG","message":"○ Compiling / ..."}
+{"timestamp":"00:00:24.397","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:00:25.616","source":"Server","level":"ERROR","message":"⨯ Error: DATABASE_URL não está definida. Configure a ligação à Neon DB em .env.local (ver .env.example)."}
+{"timestamp":"00:00:25.674","source":"Server","level":"ERROR","message":"⨯ Error: DATABASE_URL não está definida. Configure a ligação à Neon DB em .env.local (ver .env.example)."}

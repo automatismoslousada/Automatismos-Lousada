@@ -1,0 +1,5 @@
+(globalThis["TURBOPACK_CHUNK_LISTS"] || (globalThis["TURBOPACK_CHUNK_LISTS"] = [])).push({
+    script: typeof document === "object" ? document.currentScript : undefined,
+    chunks: ["static/chunks/node_modules__pnpm_12wjcvi._.js","static/chunks/app_globals_0yg4wg8.css","static/chunks/node_modules__pnpm_0u4920p._.js","static/chunks/components_door-3d_tsx_15h-800._.js","static/chunks/app_page_tsx_1s_43kl._.js","static/chunks/lib_08e_8ce._.js","static/chunks/0ebr_three_build_three_core_0x7bd5n.js","static/chunks/0ebr_three_build_three_module_07pr4cj.js","static/chunks/0ebr_three_build_three_module_0cg9cu3.js","static/chunks/1ciz_@react-three_fiber_dist_1rkzt0p._.js","static/chunks/0vpu_three-stdlib_1mioue9._.js","static/chunks/node_modules__pnpm_1im59ro._.js","static/chunks/1zyx_pako_dist_pako_esm_mjs_1yudoe6._.js","static/chunks/0hpc_jspdf_dist_jspdf_es_min_19dpt92.js","static/chunks/node_modules__pnpm_0ffv1p0._.js","static/chunks/0o73_html2canvas_dist_html2canvas_0d964qw.js","static/chunks/0fh1_dompurify_dist_purify_es_mjs_1u0e47i._.js","static/chunks/node_modules__pnpm_0nrqfnv._.js"],
+    source: "entry"
+});

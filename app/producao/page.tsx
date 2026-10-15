@@ -937,7 +937,9 @@ function ProducaoBoard({ user, onLogout }: { user: User; onLogout: () => void })
               <tbody>
                 {filteredOrders.flatMap((order) => {
                   const doors = doorsOf(order)
-                  return doors.map((door, i) => (
+                  return doors.map((door, i) => {
+                    const finalDims = finalOpeningDimensions(door)
+                    return (
                     <tr
                       key={`${order.id}-${i}`}
                       onClick={() => setSelectedId(order.id)}
@@ -955,9 +957,9 @@ function ProducaoBoard({ user, onLogout }: { user: User; onLogout: () => void })
                         {doors.length > 1 && <span className="ml-1 text-[#8a958f]">· {i + 1}/{doors.length}</span>}
                       </td>
                       <td className="px-4 py-3 font-semibold text-[#152126]">{order.client}</td>
-                      <td className="px-4 py-3 text-[#2d3a33]">{door.widthMm} mm</td>
-                      <td className="px-4 py-3 text-[#2d3a33]">{door.heightMm} mm</td>
-                      <td className="px-4 py-3 text-[#2d3a33]">{door.paddingMm} mm</td>
+                      <td className="px-4 py-3 text-[#2d3a33]">{finalDims.widthMm} mm</td>
+                      <td className="px-4 py-3 text-[#2d3a33]">{finalDims.heightMm} mm</td>
+                      <td className="px-4 py-3 text-[#2d3a33]">{finalDims.topDeductMm} mm</td>
                       <td className="px-4 py-3 text-[#2d3a33]">{door.colorCode}</td>
                       <td className="px-4 py-3 text-[#2d3a33]">{door.area.toFixed(2)}</td>
                       <td className="px-4 py-3">
@@ -986,7 +988,8 @@ function ProducaoBoard({ user, onLogout }: { user: User; onLogout: () => void })
                         {new Date(order.createdAt).toLocaleDateString('pt-PT')}
                       </td>
                     </tr>
-                  ))
+                    )
+                  })
                 })}
               </tbody>
             </table>

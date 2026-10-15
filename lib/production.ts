@@ -19,12 +19,16 @@ export function varaoValue(door: DoorConfig): number {
   return finalOpeningDimensions(door).widthMm + 300
 }
 
-// Calha L = Altura Final (depois de descontar a Padieira falsa) + padieira. Com ferragem Dupla
-// (padieira até 290mm), a padieira usada no cálculo fica sempre limitada a 200mm (200 a 290mm
-// contam sempre como 200 para a Calha L); com ferragem Normal usa-se o valor exato da padieira.
+// Calha L = Altura Final (depois de descontar a Padieira falsa) + padieira efetiva (ver
+// "Padieira" em Painel e Acabamento — a espessura da Padieira falsa realmente usada, não o campo
+// "Padieira disponível"). Com ferragem Dupla (padieira até 290mm), a padieira usada no cálculo
+// fica sempre limitada a 200mm (200 a 290mm contam sempre como 200 para a Calha L); com ferragem
+// Normal usa-se o valor exato da padieira.
 export function calhaLValue(door: DoorConfig): number {
-  const paddingForCalc = ferragemLabel(door) === 'Dupla' ? Math.min(door.paddingMm, 200) : door.paddingMm
-  return finalOpeningDimensions(door).heightMm + paddingForCalc
+  const finalDims = finalOpeningDimensions(door)
+  const paddingForCalc =
+    ferragemLabel(door) === 'Dupla' ? Math.min(finalDims.topDeductMm, 200) : finalDims.topDeductMm
+  return finalDims.heightMm + paddingForCalc
 }
 
 // Formação de painéis: decompõe a altura da porta em painéis de 610mm e 500mm (+ 50mm fixos por
@@ -71,8 +75,8 @@ export function accessoriesBox(door: DoorConfig): AccessoryLine[] {
   const tirantes = Math.floor(finalDims.widthMm / 2000) * 2
   // Padieira abaixo de 200mm leva 6 anilhões em vez dos 2 habituais.
   const anilhoes = door.paddingMm < 200 ? 6 : 2
-  // Comprimento do par de cabos de aço: Altura Final + padieira + 1000mm de folga.
-  const parCabosAco = finalDims.heightMm + door.paddingMm + 1000
+  // Comprimento do par de cabos de aço: Altura Final + padieira efetiva + 1000mm de folga.
+  const parCabosAco = finalDims.heightMm + finalDims.topDeductMm + 1000
   return [
     { label: 'Rodízios', qty: n * 2 + 2 },
     { label: 'Cavaletes', qty: (n - 1) * 2 },

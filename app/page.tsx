@@ -2028,10 +2028,19 @@ function Configurator({
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[#6d7973]">Padieira Falsa:</span>
+                          <span className="text-[#6d7973]">Padieira:</span>
                           <span className="font-bold text-[#35433d]">
-                            {header !== 'Nenhum'
-                              ? `${header}${finalOpening.topDeductMm > 0 ? ` · -${finalOpening.topDeductMm} mm` : ''}`
+                            {finalOpening.topDeductMm > 0
+                              ? `${
+                                  [
+                                    finalOpening.paddingDeductMm > 0
+                                      ? `Padieira disponível (${finalOpening.paddingDeductMm} mm)`
+                                      : '',
+                                    header !== 'Nenhum' ? header : '',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' + ')
+                                } · -${finalOpening.topDeductMm} mm`
                               : 'Nenhum'}
                           </span>
                         </div>

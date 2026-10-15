@@ -137,27 +137,31 @@ export type FinalOpeningDimensions = {
   leftDeductMm: number
   rightDeductMm: number
   topDeductMm: number
-  // Parte do desconto de cada lado que vem da Ombreira Esquerda/Direita (estrutura existente,
-  // ver leftShadeMm/rightShadeMm) em vez da Ombreira falsa — só para a UI poder distinguir a
-  // origem do desconto (estrutura existente vs. ombreira falsa).
+  // Parte do desconto de cada lado/topo que vem da estrutura já existente (Ombreira
+  // Esquerda/Direita, Padieira disponível) em vez da peça falsa escolhida em "Estrutura de
+  // Remate" — só para a UI poder distinguir a origem do desconto.
   leftShadeDeductMm: number
   rightShadeDeductMm: number
+  paddingDeductMm: number
 }
 
-// Medidas finais do vão (mm): descontam-se dos dois lados a Ombreira Esquerda/Direita (a
-// estrutura já existente, ver "Medidas de Vão" — quando é 0 passa a ser obrigatória uma Ombreira
-// falsa nesse lado, ver handleSaveOrder em app/page.tsx) mais a Ombreira falsa e a Padieira falsa
-// escolhidas em "Estrutura de Remate". Partilhado entre o Configurador, o PDF e a Ficha de
-// Produção, para nunca mostrarem valores diferentes. A Altura da padieira falsa (headerLength) é
-// sempre preenchida pelo utilizador, mesmo para tubos (só a Largura fica escondida nesse caso —
-// ver app/page.tsx), por isso não precisa do mesmo tratamento da ombreira.
+// Medidas finais do vão (mm): descontam-se dos dois lados a Ombreira Esquerda/Direita e por cima
+// a Padieira disponível (a estrutura já existente, ver "Medidas de Vão" — quando a Ombreira é 0
+// passa a ser obrigatória uma Ombreira falsa nesse lado, ver handleSaveOrder em app/page.tsx),
+// mais a Ombreira falsa e a Padieira falsa escolhidas em "Estrutura de Remate". Partilhado entre
+// o Configurador, o PDF e a Ficha de Produção, para nunca mostrarem valores diferentes. A Altura
+// da padieira falsa (headerLength) é sempre preenchida pelo utilizador, mesmo para tubos (só a
+// Largura fica escondida nesse caso — ver app/page.tsx), por isso não precisa do mesmo
+// tratamento da ombreira.
 export function finalOpeningDimensions(door: DoorConfig): FinalOpeningDimensions {
   const leftShadeDeductMm = Math.max(0, door.leftShadeMm || 0)
   const rightShadeDeductMm = Math.max(0, door.rightShadeMm || 0)
+  const paddingDeductMm = Math.max(0, door.paddingMm || 0)
   const leftDeductMm = leftShadeDeductMm + falseJambWidthMm(door.tubeLeft, door.tubeWidthLeft)
   const rightDeductMm = rightShadeDeductMm + falseJambWidthMm(door.tubeRight, door.tubeWidthRight)
-  const topDeductMm =
+  const headerDeductMm =
     door.header && door.header !== 'Nenhum' ? Math.max(0, parseFloat(door.headerLength || '') || 0) : 0
+  const topDeductMm = paddingDeductMm + headerDeductMm
   return {
     widthMm: Math.max(0, Math.round(door.widthMm - leftDeductMm - rightDeductMm)),
     heightMm: Math.max(0, Math.round(door.heightMm - topDeductMm)),
@@ -166,6 +170,7 @@ export function finalOpeningDimensions(door: DoorConfig): FinalOpeningDimensions
     topDeductMm,
     leftShadeDeductMm,
     rightShadeDeductMm,
+    paddingDeductMm,
   }
 }
 

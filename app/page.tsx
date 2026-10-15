@@ -1968,7 +1968,7 @@ function Configurator({
                     <>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
-                          Largura Final
+                          Largura
                           <div className="relative">
                             <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
                               {finalOpening.widthMm}
@@ -1979,7 +1979,7 @@ function Configurator({
                           </div>
                         </div>
                         <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
-                          Altura Final
+                          Altura
                           <div className="relative">
                             <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
                               {finalOpening.heightMm}

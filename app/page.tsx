@@ -1223,14 +1223,15 @@ function Configurator({
   }
 
   // Alterna um painel dentro/fora da lista de painéis de um extra (visores ou grelhas podem
-  // ficar em mais do que um painel ao mesmo tempo).
+  // ficar em mais do que um painel ao mesmo tempo) — pode ficar sem nenhum painel selecionado
+  // (ex: Grelhas de ventilação), nesse caso não aparece em nenhum painel no 3D.
   const toggleExtraPanel = (item: string, panel: number) => {
     setExtras((prev) =>
       prev.map((e) => {
         if (e.name !== item) return e
-        const current = e.panels && e.panels.length > 0 ? e.panels : e.panel ? [e.panel] : [1]
+        const current = e.panels !== undefined ? e.panels : e.panel ? [e.panel] : [1]
         const next = current.includes(panel) ? current.filter((p) => p !== panel) : [...current, panel]
-        return { ...e, panels: next.length > 0 ? next : [1] }
+        return { ...e, panels: next }
       })
     )
   }
@@ -1238,7 +1239,7 @@ function Configurator({
   const grelhasPanels = (() => {
     const e = extras.find((e) => e.name === 'Grelhas de ventilação')
     if (!e) return [1]
-    return e.panels && e.panels.length > 0 ? e.panels : e.panel ? [e.panel] : [1]
+    return e.panels !== undefined ? e.panels : e.panel ? [e.panel] : [1]
   })()
 
   const toggleWindowsPanel = (panel: number) => {
@@ -2435,7 +2436,7 @@ function Configurator({
                             <div className="flex items-center gap-1">
                               {Array.from({ length: panelCount }, (_, i) => i + 1).map((num) => {
                                 const selectedPanels =
-                                  selected.panels && selected.panels.length > 0
+                                  selected.panels !== undefined
                                     ? selected.panels
                                     : selected.panel
                                     ? [selected.panel]

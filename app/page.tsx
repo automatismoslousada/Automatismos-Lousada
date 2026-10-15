@@ -1996,51 +1996,24 @@ function Configurator({
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[#6d7973]">Ombreira Esquerda:</span>
                           <span className="font-bold text-[#35433d]">
-                            {finalOpening.leftDeductMm > 0
-                              ? `${
-                                  [
-                                    finalOpening.leftShadeDeductMm > 0
-                                      ? `Estrutura existente (${finalOpening.leftShadeDeductMm} mm)`
-                                      : '',
-                                    tubeLeft !== 'Nenhum' ? tubeLeft : '',
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' + ')
-                                } · -${finalOpening.leftDeductMm} mm`
+                            {tubeLeft !== 'Nenhum'
+                              ? `${tubeLeft}${finalOpening.leftDeductMm > 0 ? ` · -${finalOpening.leftDeductMm} mm` : ''}`
                               : 'Nenhum'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[#6d7973]">Ombreira Direita:</span>
                           <span className="font-bold text-[#35433d]">
-                            {finalOpening.rightDeductMm > 0
-                              ? `${
-                                  [
-                                    finalOpening.rightShadeDeductMm > 0
-                                      ? `Estrutura existente (${finalOpening.rightShadeDeductMm} mm)`
-                                      : '',
-                                    tubeRight !== 'Nenhum' ? tubeRight : '',
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' + ')
-                                } · -${finalOpening.rightDeductMm} mm`
+                            {tubeRight !== 'Nenhum'
+                              ? `${tubeRight}${finalOpening.rightDeductMm > 0 ? ` · -${finalOpening.rightDeductMm} mm` : ''}`
                               : 'Nenhum'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[#6d7973]">Padieira:</span>
+                          <span className="text-[#6d7973]">Padieira Falsa:</span>
                           <span className="font-bold text-[#35433d]">
-                            {finalOpening.topDeductMm > 0
-                              ? `${
-                                  [
-                                    finalOpening.paddingDeductMm > 0
-                                      ? `Padieira disponível (${finalOpening.paddingDeductMm} mm)`
-                                      : '',
-                                    header !== 'Nenhum' ? header : '',
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' + ')
-                                } · -${finalOpening.topDeductMm} mm`
+                            {header !== 'Nenhum'
+                              ? `${header}${finalOpening.topDeductMm > 0 ? ` · -${finalOpening.topDeductMm} mm` : ''}`
                               : 'Nenhum'}
                           </span>
                         </div>

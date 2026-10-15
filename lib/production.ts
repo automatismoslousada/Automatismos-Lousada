@@ -17,6 +17,16 @@ export function effectivePaddingMm(door: DoorConfig): number {
   return door.header && door.header !== 'Nenhum' ? finalOpeningDimensions(door).topDeductMm : door.paddingMm
 }
 
+// Ombreira Esquerda/Direita efetiva: a largura da Ombreira falsa desse lado quando há uma
+// escolhida em "Estrutura de Remate"; senão, o campo Ombreira Esquerda/Direita de "Medidas de
+// Vão" tal como preenchido — mesmo raciocínio de effectivePaddingMm, para o lado da porta.
+export function effectiveLeftShadeMm(door: DoorConfig): number {
+  return door.tubeLeft && door.tubeLeft !== 'Nenhum' ? finalOpeningDimensions(door).leftDeductMm : door.leftShadeMm
+}
+export function effectiveRightShadeMm(door: DoorConfig): number {
+  return door.tubeRight && door.tubeRight !== 'Nenhum' ? finalOpeningDimensions(door).rightDeductMm : door.rightShadeMm
+}
+
 // Tipo de ferragem: "Dupla" até 290mm de padieira, "Normal" a partir de 300mm.
 export function ferragemLabel(door: DoorConfig): string {
   return effectivePaddingMm(door) <= 290 ? 'Dupla' : 'Normal'

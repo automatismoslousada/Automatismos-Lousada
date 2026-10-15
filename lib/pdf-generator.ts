@@ -7,7 +7,9 @@ import {
   accessoriesBox,
   calhaLValue,
   curvaValue,
+  effectiveLeftShadeMm,
   effectivePaddingMm,
+  effectiveRightShadeMm,
   ferragemExtras,
   ferragemLabel,
   finalOpeningDimensions,
@@ -552,8 +554,8 @@ function drawDoorDiagram(doc: jsPDF, order: Order, startY: number, doorBadgeData
 
   // Cotas de Ombreiras
   const ombY = doorY + dH / 2
-  doc.text(`E: ${order.leftShadeMm}`, doorX - (tubeLeft ? 6 : 2), ombY, { align: 'right' })
-  doc.text(`D: ${order.rightShadeMm}`, dimX + 16, ombY)
+  doc.text(`E: ${effectiveLeftShadeMm(order)}`, doorX - (tubeLeft ? 6 : 2), ombY, { align: 'right' })
+  doc.text(`D: ${effectiveRightShadeMm(order)}`, dimX + 16, ombY)
 
   // Legenda de Cor no Desenho
   const modelLabels: Record<string, string> = {

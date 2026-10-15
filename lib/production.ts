@@ -76,7 +76,7 @@ export function accessoriesBox(door: DoorConfig): AccessoryLine[] {
   const n = panelCount(door)
   const dupla = ferragemLabel(door) === 'Dupla'
   const pertences = dupla ? (n - 1) * 2 : n * 2
-  const dobradicas = Math.ceil(finalDims.widthMm / 500) * (n - 1)
+  const dobradicas = Math.ceil(finalDims.widthMm / 1500) * (n - 1)
   const tirantes = Math.floor(finalDims.widthMm / 2000) * 2
   // Padieira (efetiva) abaixo de 200mm leva 6 anilhões em vez dos 2 habituais.
   const anilhoes = effectivePaddingMm(door) < 200 ? 6 : 2

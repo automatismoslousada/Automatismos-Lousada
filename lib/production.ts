@@ -14,14 +14,17 @@ export function ferragemLabel(door: DoorConfig): string {
   return door.paddingMm <= 290 ? 'Dupla' : 'Normal'
 }
 
-// Calha L = altura do vão + padieira. A calha corre ao longo de todo o vão (não só da parte
-// coberta pelo painel — a Padieira falsa cobre o topo do vão, mas a calha continua atrás dela),
-// por isso usa a altura do vão, não a Altura Final. Com ferragem Dupla (padieira até 290mm), a
-// padieira usada no cálculo fica sempre limitada a 200mm (200 a 290mm contam sempre como 200
-// para a Calha L); com ferragem Normal usa-se o valor exato da padieira.
+// Varão = Largura Final + 300mm de folga nas pontas.
+export function varaoValue(door: DoorConfig): number {
+  return finalOpeningDimensions(door).widthMm + 300
+}
+
+// Calha L = Altura Final (depois de descontar a Padieira falsa) + padieira. Com ferragem Dupla
+// (padieira até 290mm), a padieira usada no cálculo fica sempre limitada a 200mm (200 a 290mm
+// contam sempre como 200 para a Calha L); com ferragem Normal usa-se o valor exato da padieira.
 export function calhaLValue(door: DoorConfig): number {
   const paddingForCalc = ferragemLabel(door) === 'Dupla' ? Math.min(door.paddingMm, 200) : door.paddingMm
-  return door.heightMm + paddingForCalc
+  return finalOpeningDimensions(door).heightMm + paddingForCalc
 }
 
 // Formação de painéis: decompõe a altura da porta em painéis de 610mm e 500mm (+ 50mm fixos por
@@ -60,16 +63,16 @@ export type AccessoryLine = { label: string; qty: number; unit?: 'mm' }
 // Caixa de Acessórios: quantidade de cada peça a preparar, a partir da largura da porta, do nº de
 // painéis (ver panelCount) e do tipo de ferragem (Normal/Dupla, ver ferragemLabel).
 export function accessoriesBox(door: DoorConfig): AccessoryLine[] {
+  const finalDims = finalOpeningDimensions(door)
   const n = panelCount(door)
   const dupla = ferragemLabel(door) === 'Dupla'
   const pertences = dupla ? (n - 1) * 2 : n * 2
-  const dobradicas = Math.ceil(door.widthMm / 1000) * (n - 1)
-  const tirantes = Math.floor(door.widthMm / 2000) * 2
+  const dobradicas = Math.ceil(finalDims.widthMm / 1000) * (n - 1)
+  const tirantes = Math.floor(finalDims.widthMm / 2000) * 2
   // Padieira abaixo de 200mm leva 6 anilhões em vez dos 2 habituais.
   const anilhoes = door.paddingMm < 200 ? 6 : 2
-  // Comprimento do par de cabos de aço: altura do vão + padieira + 1000mm de folga (percorre
-  // todo o vão, tal como a Calha L — ver calhaLValue).
-  const parCabosAco = door.heightMm + door.paddingMm + 1000
+  // Comprimento do par de cabos de aço: Altura Final + padieira + 1000mm de folga.
+  const parCabosAco = finalDims.heightMm + door.paddingMm + 1000
   return [
     { label: 'Rodízios', qty: n * 2 + 2 },
     { label: 'Cavaletes', qty: (n - 1) * 2 },
@@ -104,7 +107,7 @@ const CURVA_HEIGHT_STEPS: [number, number][] = [
 export function curvaValue(door: DoorConfig): number {
   const hasElevada = (door.extras || []).some((e) => e.name === 'Ferragem elevada')
   if (hasElevada) return 0
-  const step = CURVA_HEIGHT_STEPS.find(([maxHeight]) => door.heightMm <= maxHeight)
+  const step = CURVA_HEIGHT_STEPS.find(([maxHeight]) => finalOpeningDimensions(door).heightMm <= maxHeight)
   // Acima de 5500mm (fora da tabela) usa o escalão mais alto em vez de deixar por definir.
   return step ? step[1] : CURVA_HEIGHT_STEPS[CURVA_HEIGHT_STEPS.length - 1][1]
 }

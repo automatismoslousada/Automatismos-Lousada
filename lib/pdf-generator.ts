@@ -13,6 +13,7 @@ import {
   hasExtrasEAdicionais,
   modelLabels,
   panelBreakdown,
+  varaoValue,
 } from './production'
 
 const LOGO_URL = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-mmBQUrCpo1V3dLippuG4OaIQvVOWxt.jpg'
@@ -1332,7 +1333,7 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
     if (fExtras.length > 0) ferragensFields.push({ label: 'Extras', value: fExtras.join(', ') })
     ferragensFields.push({ label: 'Calha L', value: `${calhaLValue(door)} mm` })
     ferragensFields.push({ label: 'Curva', value: String(curvaValue(door)) })
-    ferragensFields.push({ label: 'Varão', value: `${door.widthMm + 300} mm` })
+    ferragensFields.push({ label: 'Varão', value: `${varaoValue(door)} mm` })
     ferragensFields.push({ label: 'Mola', value: door.productionSpring || '—' })
     ferragensFields.push({
       label: 'Voltas da Mola',

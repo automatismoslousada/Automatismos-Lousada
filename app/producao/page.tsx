@@ -14,6 +14,7 @@ import {
   hasExtrasEAdicionais,
   modelLabels,
   panelBreakdown,
+  varaoValue,
 } from '@/lib/production'
 import {
   ArrowRight,
@@ -260,10 +261,10 @@ function DoorSummary({
         <p className="mb-2 font-bold uppercase tracking-wide text-[#16a34a]">Painel e Acabamento</p>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-700">
           <p>
-            <b>Largura Final:</b> {finalDims.widthMm} mm
+            <b>Largura:</b> {finalDims.widthMm} mm
           </p>
           <p>
-            <b>Altura Final:</b> {finalDims.heightMm} mm
+            <b>Altura:</b> {finalDims.heightMm} mm
           </p>
           <p>
             <b>Padieira:</b> {door.paddingMm} mm
@@ -314,7 +315,7 @@ function DoorSummary({
             <b>Curva:</b> {curvaValue(door)}
           </p>
           <p>
-            <b>Varão:</b> {door.widthMm + 300} mm
+            <b>Varão:</b> {varaoValue(door)} mm
           </p>
           {!isAdmin && (
             <>

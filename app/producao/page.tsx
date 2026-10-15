@@ -267,7 +267,7 @@ function DoorSummary({
             <b>Altura:</b> {finalDims.heightMm} mm
           </p>
           <p>
-            <b>Padieira:</b> {door.paddingMm} mm
+            <b>Padieira:</b> {finalDims.topDeductMm} mm
           </p>
           <p>
             <b>Largura de Corte:</b> {door.productionCutWidthMm ?? finalDims.widthMm + 30} mm

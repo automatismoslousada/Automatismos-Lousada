@@ -1312,7 +1312,7 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
     const painelFields: FieldLine[] = [
       { label: 'Largura', value: `${door.widthMm} mm` },
       { label: 'Altura', value: `${door.heightMm} mm` },
-      { label: 'Padieira', value: `${door.paddingMm} mm` },
+      { label: 'Padieira', value: `${finalDims.topDeductMm} mm` },
       { label: 'Largura Final', value: `${finalDims.widthMm} mm` },
       { label: 'Altura Final', value: `${finalDims.heightMm} mm` },
       { label: 'Largura de Corte', value: `${door.productionCutWidthMm ?? finalDims.widthMm + 30} mm` },

@@ -9,6 +9,7 @@ import {
   curvaValue,
   ferragemExtras,
   ferragemLabel,
+  finalOpeningDimensions,
   hasExtrasEAdicionais,
   modelLabels,
   panelBreakdown,
@@ -662,6 +663,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
     // =========================================================================
     // 5. TABELA TÉCNICA QUANTIFICADA (EM UNIDADES PARA OMBREIRAS E PADIEIRAS)
     // =========================================================================
+    const finalDims = finalOpeningDimensions(door)
     const tableData = [
       // 1. Portão Seccionado
       [
@@ -781,6 +783,17 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
 
     if (door.montagens && door.montagens.length > 0) {
       tableData.push(['Montagens', `${door.montagens.length}`, 'un', door.montagens.join(' · ')])
+    }
+
+    // Vão final depois de descontar Ombreiras falsas e Padieira falsa — só aparece quando há
+    // de facto algum desconto, para não duplicar a linha "Portão Seccionado" sem motivo.
+    if (finalDims.leftDeductMm > 0 || finalDims.rightDeductMm > 0 || finalDims.topDeductMm > 0) {
+      tableData.push([
+        'Medidas Finais do Vão',
+        '1',
+        'un',
+        `${finalDims.widthMm} × ${finalDims.heightMm} mm (após desconto das Ombreiras/Padieira falsas)`,
+      ])
     }
 
     autoTable(doc, {
@@ -1294,10 +1307,13 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
     currentY = drawProductionHeaderBox(doc, door, currentY)
 
     const panels = panelBreakdown(door.heightMm)
+    const finalDims = finalOpeningDimensions(door)
     const painelFields: FieldLine[] = [
       { label: 'Largura', value: `${door.widthMm} mm` },
       { label: 'Altura', value: `${door.heightMm} mm` },
       { label: 'Padieira', value: `${door.paddingMm} mm` },
+      { label: 'Largura Final', value: `${finalDims.widthMm} mm` },
+      { label: 'Altura Final', value: `${finalDims.heightMm} mm` },
       { label: 'Largura de Corte', value: `${door.productionCutWidthMm ?? door.widthMm + 30} mm` },
       { label: 'Painel', value: modelLabels[door.model] || door.model },
       { label: 'Cor', value: door.colorCode },

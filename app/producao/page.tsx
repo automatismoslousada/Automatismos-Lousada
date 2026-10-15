@@ -10,6 +10,7 @@ import {
   curvaValue,
   ferragemExtras,
   ferragemLabel,
+  finalOpeningDimensions,
   hasExtrasEAdicionais,
   modelLabels,
   panelBreakdown,
@@ -252,6 +253,7 @@ function DoorSummary({
   onUpdateDraft: (patch: Partial<DoorFieldDraft>) => void
   isAdmin: boolean
 }) {
+  const finalDims = finalOpeningDimensions(door)
   return (
     <div className="flex flex-col gap-3 text-xs">
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
@@ -265,6 +267,12 @@ function DoorSummary({
           </p>
           <p>
             <b>Padieira:</b> {door.paddingMm} mm
+          </p>
+          <p>
+            <b>Largura Final:</b> {finalDims.widthMm} mm
+          </p>
+          <p>
+            <b>Altura Final:</b> {finalDims.heightMm} mm
           </p>
           <p>
             <b>Largura de Corte:</b> {door.productionCutWidthMm ?? door.widthMm + 30} mm

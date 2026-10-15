@@ -31,6 +31,7 @@ import {
   PRICE_EDITED_NOTE,
   type PricingInput,
 } from '@/lib/pricing'
+import { finalOpeningDimensions } from '@/lib/production'
 import {
   ArrowRight,
   Boxes,
@@ -1330,12 +1331,29 @@ function Configurator({
       return
     }
 
+    // Obra com uma ou mais portas: os campos "soltos" do pedido (width, model, extras, etc.)
+    // refletem sempre a 1ª porta, para compatibilidade com o resto do sistema; "doors" leva a
+    // lista completa, com a porta atualmente aberta sincronizada primeiro.
+    const doorsToValidate = buildEffectiveDoors()
+    // Ombreira a 0 mm significa que a porta encosta diretamente à estrutura — nesse caso é
+    // obrigatório indicar uma Ombreira falsa (Estrutura de Remate) do lado correspondente,
+    // senão a obra fica sem remate nenhum nesse lado.
+    const invalidDoor = doorsToValidate.find(
+      (d) =>
+        (d.leftShade === 0 && (!d.tubeLeft || d.tubeLeft === 'Nenhum')) ||
+        (d.rightShade === 0 && (!d.tubeRight || d.tubeRight === 'Nenhum'))
+    )
+    if (invalidDoor) {
+      const doorLabel = doorsToValidate.length > 1 ? `Porta ${doorsToValidate.indexOf(invalidDoor) + 1}: ` : ''
+      alert(
+        `${doorLabel}Quando a Ombreira Esquerda ou Direita está a 0 mm, tem de escolher a Ombreira falsa correspondente em "Estrutura de Remate".`
+      )
+      return
+    }
+
     setSaving(true)
     try {
-      // Obra com uma ou mais portas: os campos "soltos" do pedido (width, model, extras, etc.)
-      // refletem sempre a 1ª porta, para compatibilidade com o resto do sistema; "doors" leva a
-      // lista completa, com a porta atualmente aberta sincronizada primeiro.
-      const finalDoors = buildEffectiveDoors()
+      const finalDoors = doorsToValidate
       // Só vão os overrides cujo label ainda existe no orçamento final e que têm um valor
       // numérico válido — um campo tocado mas deixado em branco não é guardado como override.
       const finalQuote = calculateMultiDoorQuote(finalDoors.map(doorConfigToPricingInput), catalog)
@@ -1928,6 +1946,63 @@ function Configurator({
                     </div>
                   </label>
                 </div>
+              </div>
+
+              {/* 4b. MEDIDAS FINAIS (calculado — desconta Ombreiras/Padieira falsas da Estrutura de Remate) */}
+              <div className="rounded-xl border border-[#d9e5dd] bg-[#f8faf8] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+                <div className="mb-3 flex items-center justify-between border-b border-[#e5ece7] pb-2">
+                  <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#16a34a]">
+                    <Ruler className="size-4" /> Medidas Finais
+                  </span>
+                  <span className="rounded bg-[#e9f7ee] px-2 py-0.5 text-[10px] font-bold text-[#16a34a]">
+                    Milímetros (mm)
+                  </span>
+                </div>
+                <p className="mb-3 text-[10px] text-[#6d7973]">
+                  Calculado automaticamente: vão menos as Ombreiras falsas e a Padieira falsa escolhidas em
+                  &quot;Estrutura de Remate&quot; mais abaixo. Não editável.
+                </p>
+                {(() => {
+                  const finalOpening = finalOpeningDimensions(buildDoorConfigFromState())
+                  return (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
+                        Largura Final
+                        <div className="relative">
+                          <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
+                            {finalOpening.widthMm}
+                          </div>
+                          <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
+                            mm
+                          </span>
+                        </div>
+                        {(finalOpening.leftDeductMm > 0 || finalOpening.rightDeductMm > 0) && (
+                          <span className="text-[10px] font-normal text-[#8e9c94]">
+                            {finalOpening.leftDeductMm > 0 ? `-${finalOpening.leftDeductMm} mm E` : ''}
+                            {finalOpening.leftDeductMm > 0 && finalOpening.rightDeductMm > 0 ? ' · ' : ''}
+                            {finalOpening.rightDeductMm > 0 ? `-${finalOpening.rightDeductMm} mm D` : ''}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
+                        Altura Final
+                        <div className="relative">
+                          <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
+                            {finalOpening.heightMm}
+                          </div>
+                          <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
+                            mm
+                          </span>
+                        </div>
+                        {finalOpening.topDeductMm > 0 && (
+                          <span className="text-[10px] font-normal text-[#8e9c94]">
+                            -{finalOpening.topDeductMm} mm Padieira falsa
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* 5. FALSAS MEDIDAS / ESTRUTURA */}

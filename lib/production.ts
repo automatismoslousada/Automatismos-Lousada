@@ -113,6 +113,51 @@ export function ferragemExtras(door: DoorConfig): string[] {
     .map((e) => (e.quantity > 1 ? `${e.name} ×${e.quantity}` : e.name))
 }
 
+// Largura (mm) do perfil de um tubo, lida do próprio código do catálogo (ex: "Tubo 50×30 de
+// ferro lacado" → 50) — só é preciso para Ombreira falsa do tipo Tubo, que não tem campo de
+// Largura editável no configurador (ao contrário do tipo "Fixo em Painel", ver app/page.tsx).
+function tubeProfileWidthMm(code: string): number {
+  const match = code.match(/(\d+(?:[.,]\d+)?)\s*[×xX]/)
+  return match ? parseFloat(match[1].replace(',', '.')) : 0
+}
+
+// Largura (mm) que uma ombreira falsa ocupa do vão, do lado esquerdo/direito: tipo Tubo lê a
+// largura do próprio nome do item (ver tubeProfileWidthMm); qualquer outro tipo (ex: "Fixo em
+// Painel") usa o campo Largura preenchido no configurador.
+function falseJambWidthMm(type: string | undefined, widthMm: string | undefined): number {
+  if (!type || type === 'Nenhum') return 0
+  if (type.toLowerCase().includes('tubo')) return tubeProfileWidthMm(type)
+  const n = parseFloat(widthMm || '')
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+export type FinalOpeningDimensions = {
+  widthMm: number
+  heightMm: number
+  leftDeductMm: number
+  rightDeductMm: number
+  topDeductMm: number
+}
+
+// Medidas finais do vão (mm), depois de descontar as Ombreiras falsas (laterais) e a Padieira
+// falsa (topo) escolhidas em "Estrutura de Remate" — partilhado entre o Configurador, o PDF e a
+// Ficha de Produção, para nunca mostrarem valores diferentes. A Altura da padieira falsa
+// (headerLength) é sempre preenchida pelo utilizador, mesmo para tubos (só a Largura fica
+// escondida nesse caso — ver app/page.tsx), por isso não precisa do mesmo tratamento da ombreira.
+export function finalOpeningDimensions(door: DoorConfig): FinalOpeningDimensions {
+  const leftDeductMm = falseJambWidthMm(door.tubeLeft, door.tubeWidthLeft)
+  const rightDeductMm = falseJambWidthMm(door.tubeRight, door.tubeWidthRight)
+  const topDeductMm =
+    door.header && door.header !== 'Nenhum' ? Math.max(0, parseFloat(door.headerLength || '') || 0) : 0
+  return {
+    widthMm: Math.max(0, Math.round(door.widthMm - leftDeductMm - rightDeductMm)),
+    heightMm: Math.max(0, Math.round(door.heightMm - topDeductMm)),
+    leftDeductMm,
+    rightDeductMm,
+    topDeductMm,
+  }
+}
+
 // Mesmas condições usadas para decidir o que aparece dentro do cartão/secção Extras e Adicionais
 // — para não aparecer vazio quando nenhum destes campos tem valor.
 export function hasExtrasEAdicionais(door: DoorConfig): boolean {

@@ -278,7 +278,7 @@ function DoorSummary({
             <b>Cor:</b> {door.colorCode}
           </p>
           {(() => {
-            const { p610, p500, cutMm } = panelBreakdown(door.heightMm)
+            const { p610, p500, cutMm } = panelBreakdown(finalDims.heightMm)
             return (
               <>
                 <p>

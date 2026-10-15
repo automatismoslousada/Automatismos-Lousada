@@ -1306,8 +1306,8 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
     let currentY = dividerY + 7
     currentY = drawProductionHeaderBox(doc, door, currentY)
 
-    const panels = panelBreakdown(door.heightMm)
     const finalDims = finalOpeningDimensions(door)
+    const panels = panelBreakdown(finalDims.heightMm)
     const painelFields: FieldLine[] = [
       { label: 'Largura', value: `${door.widthMm} mm` },
       { label: 'Altura', value: `${door.heightMm} mm` },

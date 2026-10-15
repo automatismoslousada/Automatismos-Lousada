@@ -46,9 +46,10 @@ export function panelBreakdown(heightMm: number): PanelBreakdown {
 }
 
 // Nº total de painéis da porta — reaproveita a Formação de Painéis já calculada, para a Caixa de
-// Acessórios nunca pedir este valor outra vez ao utilizador.
+// Acessórios nunca pedir este valor outra vez ao utilizador. Usa a Altura Final (depois de
+// descontar a Padieira falsa), não a Altura do vão — é a essa altura que os painéis são cortados.
 export function panelCount(door: DoorConfig): number {
-  const { p610, p500 } = panelBreakdown(door.heightMm)
+  const { p610, p500 } = panelBreakdown(finalOpeningDimensions(door).heightMm)
   return p610 + p500
 }
 

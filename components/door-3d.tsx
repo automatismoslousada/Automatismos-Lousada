@@ -745,11 +745,16 @@ function DoorModel({
         })()}
 
       {/* MOLA DE TORÇÃO — veio horizontal ao longo da padieira com espiral, elemento fixo do lado
-          interior. Do lado exterior só aparece exposta quando não há padieira nenhuma (real ou
-          falsa) a tapá-la — com Padieira disponível ou Padieira falsa, fica escondida atrás dela,
-          tal como na instalação real; a vista interior continua sempre a mostrar o mecanismo. */}
-      {(showInterior || (padding <= 0 && header === 'Nenhum')) && (
-      <group position={[0, height / 2 + 0.15, 0.15]}>
+          interior. Fica sempre fixada ao nível da padieira (falsa ou de vão — a mesma altura da
+          parede "Padieira Superior" em Scene), nunca a uma distância fixa ao topo da porta, senão
+          com padieiras maiores/menores desalinha-se da estrutura. Do lado exterior só aparece
+          exposta quando não há padieira nenhuma (real ou falsa) a tapá-la — com Padieira
+          disponível ou Padieira falsa, fica escondida atrás dela, tal como na instalação real; a
+          vista interior continua sempre a mostrar o mecanismo. */}
+      {(showInterior || (padding <= 0 && header === 'Nenhum')) && (() => {
+        const molaWallPad = Math.max(0.18, padding)
+        return (
+      <group position={[0, height / 2 + molaWallPad * 0.65, 0.15]}>
         {/* Veio horizontal */}
         <mesh rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.018, 0.018, width * 0.9, 16]} />
@@ -776,7 +781,8 @@ function DoorModel({
           </mesh>
         ))}
       </group>
-      )}
+        )
+      })()}
 
       {/* FERRAGEM ELEVADA / INCLINADA — carris de tração montados acima do vão, do lado interior (tal
           como o Omega). Têm de acompanhar sempre o topo real da padieira, não uma distância fixa ao

@@ -548,7 +548,7 @@ function drawDoorDiagram(doc: jsPDF, order: Order, startY: number, doorBadgeData
   doc.setTextColor(220, 38, 38)
   const padY = doorY - 5.5
   doc.line(doorCenterX - 8, padY, doorCenterX + 8, padY)
-  doc.text(`Padieira: ${order.paddingMm} mm`, doorCenterX, padY - 1.5, { align: 'center' })
+  doc.text(`Padieira: ${effectivePaddingMm(order)} mm`, doorCenterX, padY - 1.5, { align: 'center' })
 
   // Cotas de Ombreiras
   const ombY = doorY + dH / 2

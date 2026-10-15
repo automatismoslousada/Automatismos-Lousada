@@ -260,19 +260,13 @@ function DoorSummary({
         <p className="mb-2 font-bold uppercase tracking-wide text-[#16a34a]">Painel e Acabamento</p>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-700">
           <p>
-            <b>Largura:</b> {door.widthMm} mm
-          </p>
-          <p>
-            <b>Altura:</b> {door.heightMm} mm
-          </p>
-          <p>
-            <b>Padieira:</b> {door.paddingMm} mm
-          </p>
-          <p>
             <b>Largura Final:</b> {finalDims.widthMm} mm
           </p>
           <p>
             <b>Altura Final:</b> {finalDims.heightMm} mm
+          </p>
+          <p>
+            <b>Padieira:</b> {door.paddingMm} mm
           </p>
           <p>
             <b>Largura de Corte:</b> {door.productionCutWidthMm ?? door.widthMm + 30} mm

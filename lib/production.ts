@@ -9,9 +9,17 @@ export const modelLabels: Record<string, string> = {
   cassette: 'Painel Almofadado (Cassette)',
 }
 
+// Padieira efetiva: a espessura da Padieira falsa quando há uma escolhida em "Estrutura de
+// Remate" (ver "Padieira" em Painel e Acabamento); senão, o campo "Padieira disponível" tal como
+// preenchido em "Medidas de Vão". É este valor — nunca "Padieira disponível" sozinho — que entra
+// no tipo de ferragem, na Calha L, nos anilhões e no comprimento dos cabos de aço.
+export function effectivePaddingMm(door: DoorConfig): number {
+  return door.header && door.header !== 'Nenhum' ? finalOpeningDimensions(door).topDeductMm : door.paddingMm
+}
+
 // Tipo de ferragem: "Dupla" até 290mm de padieira, "Normal" a partir de 300mm.
 export function ferragemLabel(door: DoorConfig): string {
-  return door.paddingMm <= 290 ? 'Dupla' : 'Normal'
+  return effectivePaddingMm(door) <= 290 ? 'Dupla' : 'Normal'
 }
 
 // Varão = Largura Final + 300mm de folga nas pontas.
@@ -19,16 +27,13 @@ export function varaoValue(door: DoorConfig): number {
   return finalOpeningDimensions(door).widthMm + 300
 }
 
-// Calha L = Altura Final (depois de descontar a Padieira falsa) + padieira efetiva (ver
-// "Padieira" em Painel e Acabamento — a espessura da Padieira falsa realmente usada, não o campo
-// "Padieira disponível"). Com ferragem Dupla (padieira até 290mm), a padieira usada no cálculo
-// fica sempre limitada a 200mm (200 a 290mm contam sempre como 200 para a Calha L); com ferragem
-// Normal usa-se o valor exato da padieira.
+// Calha L = Altura Final (depois de descontar a Padieira falsa) + padieira efetiva. Com ferragem
+// Dupla (padieira até 290mm), a padieira usada no cálculo fica sempre limitada a 200mm (200 a
+// 290mm contam sempre como 200 para a Calha L); com ferragem Normal usa-se o valor exato.
 export function calhaLValue(door: DoorConfig): number {
-  const finalDims = finalOpeningDimensions(door)
-  const paddingForCalc =
-    ferragemLabel(door) === 'Dupla' ? Math.min(finalDims.topDeductMm, 200) : finalDims.topDeductMm
-  return finalDims.heightMm + paddingForCalc
+  const padding = effectivePaddingMm(door)
+  const paddingForCalc = ferragemLabel(door) === 'Dupla' ? Math.min(padding, 200) : padding
+  return finalOpeningDimensions(door).heightMm + paddingForCalc
 }
 
 // Formação de painéis: decompõe a altura da porta em painéis de 610mm e 500mm (+ 50mm fixos por
@@ -73,10 +78,10 @@ export function accessoriesBox(door: DoorConfig): AccessoryLine[] {
   const pertences = dupla ? (n - 1) * 2 : n * 2
   const dobradicas = Math.ceil(finalDims.widthMm / 1000) * (n - 1)
   const tirantes = Math.floor(finalDims.widthMm / 2000) * 2
-  // Padieira abaixo de 200mm leva 6 anilhões em vez dos 2 habituais.
-  const anilhoes = door.paddingMm < 200 ? 6 : 2
+  // Padieira (efetiva) abaixo de 200mm leva 6 anilhões em vez dos 2 habituais.
+  const anilhoes = effectivePaddingMm(door) < 200 ? 6 : 2
   // Comprimento do par de cabos de aço: Altura Final + padieira efetiva + 1000mm de folga.
-  const parCabosAco = finalDims.heightMm + finalDims.topDeductMm + 1000
+  const parCabosAco = finalDims.heightMm + effectivePaddingMm(door) + 1000
   return [
     { label: 'Rodízios', qty: n * 2 + 2 },
     { label: 'Cavaletes', qty: (n - 1) * 2 },

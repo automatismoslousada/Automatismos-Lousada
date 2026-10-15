@@ -1965,42 +1965,60 @@ function Configurator({
                 {(() => {
                   const finalOpening = finalOpeningDimensions(buildDoorConfigFromState())
                   return (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
-                        Largura Final
-                        <div className="relative">
-                          <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
-                            {finalOpening.widthMm}
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
+                          Largura Final
+                          <div className="relative">
+                            <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
+                              {finalOpening.widthMm}
+                            </div>
+                            <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
+                              mm
+                            </span>
                           </div>
-                          <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
-                            mm
+                        </div>
+                        <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
+                          Altura Final
+                          <div className="relative">
+                            <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
+                              {finalOpening.heightMm}
+                            </div>
+                            <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
+                              mm
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Descriminação do desconto aplicado por cada Ombreira/Padieira falsa escolhida */}
+                      <div className="mt-3 flex flex-col gap-1.5 border-t border-[#e5ece7] pt-3 text-[11px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[#6d7973]">Ombreira Esquerda:</span>
+                          <span className="font-bold text-[#35433d]">
+                            {tubeLeft !== 'Nenhum'
+                              ? `${tubeLeft}${finalOpening.leftDeductMm > 0 ? ` · -${finalOpening.leftDeductMm} mm` : ''}`
+                              : 'Nenhum'}
                           </span>
                         </div>
-                        {(finalOpening.leftDeductMm > 0 || finalOpening.rightDeductMm > 0) && (
-                          <span className="text-[10px] font-normal text-[#8e9c94]">
-                            {finalOpening.leftDeductMm > 0 ? `-${finalOpening.leftDeductMm} mm E` : ''}
-                            {finalOpening.leftDeductMm > 0 && finalOpening.rightDeductMm > 0 ? ' · ' : ''}
-                            {finalOpening.rightDeductMm > 0 ? `-${finalOpening.rightDeductMm} mm D` : ''}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
-                        Altura Final
-                        <div className="relative">
-                          <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
-                            {finalOpening.heightMm}
-                          </div>
-                          <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
-                            mm
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[#6d7973]">Ombreira Direita:</span>
+                          <span className="font-bold text-[#35433d]">
+                            {tubeRight !== 'Nenhum'
+                              ? `${tubeRight}${finalOpening.rightDeductMm > 0 ? ` · -${finalOpening.rightDeductMm} mm` : ''}`
+                              : 'Nenhum'}
                           </span>
                         </div>
-                        {finalOpening.topDeductMm > 0 && (
-                          <span className="text-[10px] font-normal text-[#8e9c94]">
-                            -{finalOpening.topDeductMm} mm Padieira falsa
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[#6d7973]">Padieira Falsa:</span>
+                          <span className="font-bold text-[#35433d]">
+                            {header !== 'Nenhum'
+                              ? `${header}${finalOpening.topDeductMm > 0 ? ` · -${finalOpening.topDeductMm} mm` : ''}`
+                              : 'Nenhum'}
                           </span>
-                        )}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )
                 })()}
               </div>

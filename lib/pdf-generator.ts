@@ -7,6 +7,7 @@ import {
   accessoriesBox,
   calhaLValue,
   curvaValue,
+  effectivePaddingMm,
   ferragemExtras,
   ferragemLabel,
   finalOpeningDimensions,
@@ -1312,13 +1313,7 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
     const painelFields: FieldLine[] = [
       { label: 'Largura', value: `${finalDims.widthMm} mm` },
       { label: 'Altura', value: `${finalDims.heightMm} mm` },
-      {
-        label: 'Padieira',
-        value:
-          door.header !== 'Nenhum'
-            ? `${door.header}${finalDims.topDeductMm > 0 ? ` · -${finalDims.topDeductMm} mm` : ''}`
-            : `${door.paddingMm} mm`,
-      },
+      { label: 'Padieira', value: `${effectivePaddingMm(door)} mm` },
       { label: 'Largura de Corte', value: `${door.productionCutWidthMm ?? finalDims.widthMm + 30} mm` },
       { label: 'Painel', value: modelLabels[door.model] || door.model },
       { label: 'Cor', value: door.colorCode },

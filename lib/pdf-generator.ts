@@ -1314,7 +1314,7 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
       { label: 'Padieira', value: `${door.paddingMm} mm` },
       { label: 'Largura Final', value: `${finalDims.widthMm} mm` },
       { label: 'Altura Final', value: `${finalDims.heightMm} mm` },
-      { label: 'Largura de Corte', value: `${door.productionCutWidthMm ?? door.widthMm + 30} mm` },
+      { label: 'Largura de Corte', value: `${door.productionCutWidthMm ?? finalDims.widthMm + 30} mm` },
       { label: 'Painel', value: modelLabels[door.model] || door.model },
       { label: 'Cor', value: door.colorCode },
       { label: 'Painéis 610mm', value: String(panels.p610) },

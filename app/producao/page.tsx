@@ -269,7 +269,7 @@ function DoorSummary({
             <b>Padieira:</b> {door.paddingMm} mm
           </p>
           <p>
-            <b>Largura de Corte:</b> {door.productionCutWidthMm ?? door.widthMm + 30} mm
+            <b>Largura de Corte:</b> {door.productionCutWidthMm ?? finalDims.widthMm + 30} mm
           </p>
           <p>
             <b>Painel:</b> {modelLabels[door.model] || door.model}

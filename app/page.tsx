@@ -1996,16 +1996,34 @@ function Configurator({
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[#6d7973]">Ombreira Esquerda:</span>
                           <span className="font-bold text-[#35433d]">
-                            {tubeLeft !== 'Nenhum'
-                              ? `${tubeLeft}${finalOpening.leftDeductMm > 0 ? ` · -${finalOpening.leftDeductMm} mm` : ''}`
+                            {finalOpening.leftDeductMm > 0
+                              ? `${
+                                  [
+                                    finalOpening.leftShadeDeductMm > 0
+                                      ? `Estrutura existente (${finalOpening.leftShadeDeductMm} mm)`
+                                      : '',
+                                    tubeLeft !== 'Nenhum' ? tubeLeft : '',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' + ')
+                                } · -${finalOpening.leftDeductMm} mm`
                               : 'Nenhum'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[#6d7973]">Ombreira Direita:</span>
                           <span className="font-bold text-[#35433d]">
-                            {tubeRight !== 'Nenhum'
-                              ? `${tubeRight}${finalOpening.rightDeductMm > 0 ? ` · -${finalOpening.rightDeductMm} mm` : ''}`
+                            {finalOpening.rightDeductMm > 0
+                              ? `${
+                                  [
+                                    finalOpening.rightShadeDeductMm > 0
+                                      ? `Estrutura existente (${finalOpening.rightShadeDeductMm} mm)`
+                                      : '',
+                                    tubeRight !== 'Nenhum' ? tubeRight : '',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' + ')
+                                } · -${finalOpening.rightDeductMm} mm`
                               : 'Nenhum'}
                           </span>
                         </div>

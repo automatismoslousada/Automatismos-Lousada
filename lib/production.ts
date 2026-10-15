@@ -137,16 +137,25 @@ export type FinalOpeningDimensions = {
   leftDeductMm: number
   rightDeductMm: number
   topDeductMm: number
+  // Parte do desconto de cada lado que vem da Ombreira Esquerda/Direita (estrutura existente,
+  // ver leftShadeMm/rightShadeMm) em vez da Ombreira falsa — só para a UI poder distinguir a
+  // origem do desconto (estrutura existente vs. ombreira falsa).
+  leftShadeDeductMm: number
+  rightShadeDeductMm: number
 }
 
-// Medidas finais do vão (mm), depois de descontar as Ombreiras falsas (laterais) e a Padieira
-// falsa (topo) escolhidas em "Estrutura de Remate" — partilhado entre o Configurador, o PDF e a
-// Ficha de Produção, para nunca mostrarem valores diferentes. A Altura da padieira falsa
-// (headerLength) é sempre preenchida pelo utilizador, mesmo para tubos (só a Largura fica
-// escondida nesse caso — ver app/page.tsx), por isso não precisa do mesmo tratamento da ombreira.
+// Medidas finais do vão (mm): descontam-se dos dois lados a Ombreira Esquerda/Direita (a
+// estrutura já existente, ver "Medidas de Vão" — quando é 0 passa a ser obrigatória uma Ombreira
+// falsa nesse lado, ver handleSaveOrder em app/page.tsx) mais a Ombreira falsa e a Padieira falsa
+// escolhidas em "Estrutura de Remate". Partilhado entre o Configurador, o PDF e a Ficha de
+// Produção, para nunca mostrarem valores diferentes. A Altura da padieira falsa (headerLength) é
+// sempre preenchida pelo utilizador, mesmo para tubos (só a Largura fica escondida nesse caso —
+// ver app/page.tsx), por isso não precisa do mesmo tratamento da ombreira.
 export function finalOpeningDimensions(door: DoorConfig): FinalOpeningDimensions {
-  const leftDeductMm = falseJambWidthMm(door.tubeLeft, door.tubeWidthLeft)
-  const rightDeductMm = falseJambWidthMm(door.tubeRight, door.tubeWidthRight)
+  const leftShadeDeductMm = Math.max(0, door.leftShadeMm || 0)
+  const rightShadeDeductMm = Math.max(0, door.rightShadeMm || 0)
+  const leftDeductMm = leftShadeDeductMm + falseJambWidthMm(door.tubeLeft, door.tubeWidthLeft)
+  const rightDeductMm = rightShadeDeductMm + falseJambWidthMm(door.tubeRight, door.tubeWidthRight)
   const topDeductMm =
     door.header && door.header !== 'Nenhum' ? Math.max(0, parseFloat(door.headerLength || '') || 0) : 0
   return {
@@ -155,6 +164,8 @@ export function finalOpeningDimensions(door: DoorConfig): FinalOpeningDimensions
     leftDeductMm,
     rightDeductMm,
     topDeductMm,
+    leftShadeDeductMm,
+    rightShadeDeductMm,
   }
 }
 

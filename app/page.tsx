@@ -1991,14 +1991,15 @@ function Configurator({
                         </div>
                       </div>
 
-                      {/* Descriminação do desconto aplicado por cada Ombreira/Padieira falsa escolhida */}
+                      {/* Descriminação: Ombreira/Padieira falsa descontam da medida final; sem Estrutura de
+                          Remate escolhida, mostra-se o valor de "Medidas de Vão" tal qual, sem descontar. */}
                       <div className="mt-3 flex flex-col gap-1.5 border-t border-[#e5ece7] pt-3 text-[11px]">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[#6d7973]">Ombreira Esquerda:</span>
                           <span className="font-bold text-[#35433d]">
                             {tubeLeft !== 'Nenhum'
                               ? `${tubeLeft}${finalOpening.leftDeductMm > 0 ? ` · -${finalOpening.leftDeductMm} mm` : ''}`
-                              : 'Nenhum'}
+                              : `${Math.round(leftShade * 1000)} mm`}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
@@ -2006,7 +2007,7 @@ function Configurator({
                           <span className="font-bold text-[#35433d]">
                             {tubeRight !== 'Nenhum'
                               ? `${tubeRight}${finalOpening.rightDeductMm > 0 ? ` · -${finalOpening.rightDeductMm} mm` : ''}`
-                              : 'Nenhum'}
+                              : `${Math.round(rightShade * 1000)} mm`}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
@@ -2014,7 +2015,7 @@ function Configurator({
                           <span className="font-bold text-[#35433d]">
                             {header !== 'Nenhum'
                               ? `${header}${finalOpening.topDeductMm > 0 ? ` · -${finalOpening.topDeductMm} mm` : ''}`
-                              : 'Nenhum'}
+                              : `${Math.round(padding * 1000)} mm`}
                           </span>
                         </div>
                       </div>

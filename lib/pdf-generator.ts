@@ -675,7 +675,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
         'Portão Seccionado',
         '1',
         'un',
-        `Painel 40mm PUR, ${modelLabels[door.model] || door.model}, ${door.colorCode} (${door.widthMm} × ${door.heightMm} mm · ${door.area.toFixed(2)} m²)`,
+        `Painel 40mm PUR, ${modelLabels[door.model] || door.model}, ${door.colorCode} (${finalDims.widthMm} × ${finalDims.heightMm} mm · ${((finalDims.widthMm * finalDims.heightMm) / 1e6).toFixed(2)} m²)`,
       ],
       // 2. Motorização e Calha
       [
@@ -790,15 +790,10 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
       tableData.push(['Montagens', `${door.montagens.length}`, 'un', door.montagens.join(' · ')])
     }
 
-    // Vão final depois de descontar Ombreiras falsas e Padieira falsa — só aparece quando há
-    // de facto algum desconto, para não duplicar a linha "Portão Seccionado" sem motivo.
+    // Medidas do vão tal como medidas, sem descontos — "Portão Seccionado" já mostra as medidas
+    // finais. Só aparece quando há de facto algum desconto, senão repetia os mesmos valores.
     if (finalDims.leftDeductMm > 0 || finalDims.rightDeductMm > 0 || finalDims.topDeductMm > 0) {
-      tableData.push([
-        'Medidas Finais do Vão',
-        '1',
-        'un',
-        `${finalDims.widthMm} × ${finalDims.heightMm} mm (após desconto das Ombreiras/Padieira falsas)`,
-      ])
+      tableData.push(['Medidas de Vão', '1', 'un', `${door.widthMm} × ${door.heightMm} mm`])
     }
 
     autoTable(doc, {

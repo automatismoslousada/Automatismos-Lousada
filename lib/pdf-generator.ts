@@ -957,8 +957,10 @@ type FieldLine = { label: string; value: string }
 // Mede se o valor cabe ao lado da etiqueta, na largura da coluna — se não couber, o valor passa
 // a aparecer por baixo da etiqueta (eventualmente em várias linhas, via splitTextToSize), nunca
 // cortado com "…": o texto tem sempre de aparecer todo.
-const FIELD_LINE_H = 4.6
-const FIELD_FONT_SIZE = 9.5
+// Tamanhos pensados para a folha impressa ser lida à distância na fábrica (os colaboradores
+// queixavam-se de letra pequena com 9,5pt).
+const FIELD_LINE_H = 5.6
+const FIELD_FONT_SIZE = 12.5
 
 function layoutField(
   doc: jsPDF,
@@ -1008,7 +1010,7 @@ function drawProductionHeaderBox(doc: jsPDF, door: Order, startY: number): numbe
   const pageWidth = doc.internal.pageSize.getWidth()
   const boxX = 14
   const boxWidth = pageWidth - 28
-  const boxH = 17
+  const boxH = 19
 
   doc.setFillColor(248, 250, 248)
   doc.roundedRect(boxX, startY, boxWidth, boxH, 2, 2, 'F')
@@ -1016,20 +1018,20 @@ function drawProductionHeaderBox(doc: jsPDF, door: Order, startY: number): numbe
   doc.roundedRect(boxX, startY, boxWidth, boxH, 2, 2, 'S')
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
+  doc.setFontSize(12)
   doc.setTextColor(21, 33, 38)
-  doc.text('CLIENTE:', boxX + 4, startY + 7.5)
+  doc.text('CLIENTE:', boxX + 4, startY + 8)
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(13)
-  doc.text(fitTextWidth(doc, door.client || 'Não especificado', boxWidth - 65), boxX + 26, startY + 8)
+  doc.setFontSize(17)
+  doc.text(fitTextWidth(doc, door.client || 'Não especificado', boxWidth - 40), boxX + 30, startY + 8.5)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
+  doc.setFontSize(12)
   doc.setTextColor(21, 33, 38)
-  doc.text('Data:', boxX + 4, startY + 14)
+  doc.text('Data:', boxX + 4, startY + 15)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(60, 68, 64)
-  doc.text(new Date(door.createdAt).toLocaleDateString('pt-PT'), boxX + 16, startY + 14)
+  doc.text(new Date(door.createdAt).toLocaleDateString('pt-PT'), boxX + 19, startY + 15)
 
   return startY + boxH + 4
 }
@@ -1055,8 +1057,8 @@ function layoutSectionBox(doc: jsPDF, fields: FieldLine[], columns: number, hasS
   const boxWidth = pageWidth - 28
   const colWidth = (boxWidth - 8) / columns
   const fullWidth = boxWidth - 8
-  const baseRowH = 7.8 * scale
-  const titleH = 11 * scale
+  const baseRowH = 8.6 * scale
+  const titleH = 11.5 * scale
   const signatureRowH = hasSignature ? baseRowH + 1 * scale : 0
 
   const rows: SectionRow[] = []
@@ -1115,14 +1117,14 @@ function drawSectionBox(
   doc.roundedRect(boxX, y, boxWidth, boxH, 2, 2, 'S')
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(11 * scale)
+  doc.setFontSize(13.5 * scale)
   doc.setTextColor(22, 163, 74)
   doc.text(title.toUpperCase(), boxX + 4, y + titleH * 0.68)
 
   let rowY = y + titleH
   rows.forEach((row, i) => {
     row.fields.forEach((f, col) => {
-      drawInlineFields(doc, [f], boxX + 4 + col * row.width, rowY + 4 * scale, row.width, scale)
+      drawInlineFields(doc, [f], boxX + 4 + col * row.width, rowY + 5.3 * scale, row.width, scale)
     })
     rowY += rowHeights[i]
   })
@@ -1131,13 +1133,13 @@ function drawSectionBox(
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(FIELD_FONT_SIZE * scale)
     doc.setTextColor(21, 33, 38)
-    doc.text(`${signatureLabel}:`, boxX + 4, rowY + 4 * scale)
+    doc.text(`${signatureLabel}:`, boxX + 4, rowY + 5.3 * scale)
     const labelW = doc.getTextWidth(`${signatureLabel}: `)
     const lineStart = boxX + 4 + labelW
     const lineEnd = Math.max(lineStart + 20, boxX + boxWidth / 2)
     doc.setDrawColor(150, 160, 155)
     doc.setLineWidth(0.3)
-    doc.line(lineStart, rowY + 4 * scale, lineEnd, rowY + 4 * scale)
+    doc.line(lineStart, rowY + 5.3 * scale, lineEnd, rowY + 5.3 * scale)
   }
 
   return y + boxH + 4 * scale
@@ -1224,15 +1226,15 @@ function buildExtrasEAdicionaisFields(door: Order): FieldLine[] {
 
 // Espaço mínimo reservado no fundo da página para o conteúdo nunca sobrepor o rodapé oficial.
 const PAGE_BOTTOM_MARGIN = 16
-// Nunca encolhe o texto abaixo disto — continua legível numa folha impressa mesmo numa porta com
-// muitos extras.
-const MIN_PRODUCTION_SCALE = 0.62
+// Nunca encolhe o texto abaixo disto (≈11pt) — se mesmo assim não couber, a folha continua numa
+// segunda página em vez de ficar ilegível.
+const MIN_PRODUCTION_SCALE = 0.9
 
 function notesBoxLayout(doc: jsPDF, notes: string, pageWidth: number, scale: number): { lines: string[]; boxH: number } {
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9 * scale)
+  doc.setFontSize(12.5 * scale)
   const lines = doc.splitTextToSize(notes, pageWidth - 28 - 8) as string[]
-  const boxH = 11 * scale + lines.length * 4.3 * scale
+  const boxH = 14 * scale + lines.length * 5.8 * scale
   return { lines, boxH }
 }
 
@@ -1283,9 +1285,9 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
   doorsList.forEach((door, idx) => {
     if (idx > 0) doc.addPage()
 
-    // Logótipo e emblema maiores do que nos outros PDFs — a Ficha de Produção é uma folha mais
-    // curta, com menos secções, por isso o cabeçalho amplia-se para a página não ficar tão em branco.
-    const headerBottom = drawHeaderBranding(doc, logoDataUrl, doorBadgeDataUrl, 1.8)
+    // Logótipo um pouco maior do que nos outros PDFs, mas sem roubar o espaço de que o texto
+    // (agora em letra grande) precisa.
+    const headerBottom = drawHeaderBranding(doc, logoDataUrl, doorBadgeDataUrl, 1.1)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8.5)
     doc.setTextColor(90, 100, 95)
@@ -1296,14 +1298,16 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(15)
     doc.setTextColor(21, 33, 38)
-    doc.text('FOLHA DE PRODUÇÃO', pageWidth / 2, headerBottom + 8, { align: 'center' })
+    // O título fica sempre abaixo da caixa do Nº de Porta, mesmo com o logótipo mais pequeno.
+    const titleTop = Math.max(headerBottom, 7 + DOOR_NUMBER_BOX_H)
+    doc.text('FOLHA DE PRODUÇÃO', pageWidth / 2, titleTop + 7, { align: 'center' })
 
-    const dividerY = headerBottom + 14
+    const dividerY = titleTop + 11
     doc.setDrawColor(20, 24, 22)
     doc.setLineWidth(0.6)
     doc.line(0, dividerY, pageWidth, dividerY)
 
-    let currentY = dividerY + 7
+    let currentY = dividerY + 5
     currentY = drawProductionHeaderBox(doc, door, currentY)
 
     const finalDims = finalOpeningDimensions(door)
@@ -1353,16 +1357,35 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
       notesText,
     })
 
-    currentY = drawSectionBox(doc, 'Painel e Acabamento', painelFields, currentY, 3, 'Assinatura Colaborador 1', scale)
-    currentY = drawSectionBox(doc, 'Caixa de Acessórios', accessoriesFields, currentY, 3, 'Assinatura Colaborador 2', scale)
-    currentY = drawSectionBox(doc, 'Ferragens', ferragensFields, currentY, 2, 'Assinatura Colaborador 3', scale)
-
-    if (extrasFields.length > 0) {
-      currentY = drawSectionBox(doc, 'Extras e Adicionais', extrasFields, currentY, 2, undefined, scale)
+    // Só numa porta com muitíssimo conteúdo: passa a secção seguinte para uma página nova (com o
+    // Nº de Porta e o cliente) em vez de a cortar no fundo da folha.
+    const ensureSpace = (needed: number) => {
+      if (currentY + needed <= pageHeight - PAGE_BOTTOM_MARGIN) return
+      doc.addPage()
+      drawDoorNumberBox(doc, doorLabel)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(14)
+      doc.setTextColor(21, 33, 38)
+      doc.text('FOLHA DE PRODUÇÃO (continuação)', 14, 16)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(12)
+      doc.text(fitTextWidth(doc, order.client || '', pageWidth - 28 - DOOR_NUMBER_BOX_W - 8), 14, 24)
+      currentY = 7 + DOOR_NUMBER_BOX_H + 8
     }
+    const section = (title: string, fields: FieldLine[], columns: number, signature?: string) => {
+      if (fields.length === 0 && !signature) return
+      ensureSpace(layoutSectionBox(doc, fields, columns, !!signature, scale).boxH)
+      currentY = drawSectionBox(doc, title, fields, currentY, columns, signature, scale)
+    }
+
+    section('Painel e Acabamento', painelFields, 3, 'Assinatura Colaborador 1')
+    section('Caixa de Acessórios', accessoriesFields, 3, 'Assinatura Colaborador 2')
+    section('Ferragens', ferragensFields, 2, 'Assinatura Colaborador 3')
+    section('Extras e Adicionais', extrasFields, 2)
 
     if (notesText) {
       const { lines: notesLines, boxH: notesBoxH } = notesBoxLayout(doc, notesText, pageWidth, scale)
+      ensureSpace(notesBoxH)
 
       doc.setFillColor(255, 251, 235)
       doc.roundedRect(14, currentY, pageWidth - 28, notesBoxH, 2, 2, 'F')
@@ -1370,14 +1393,14 @@ export async function buildProductionSheetPDF(order: Order): Promise<{ doc: jsPD
       doc.roundedRect(14, currentY, pageWidth - 28, notesBoxH, 2, 2, 'S')
 
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9 * scale)
+      doc.setFontSize(12 * scale)
       doc.setTextColor(146, 100, 6)
-      doc.text('OBSERVAÇÕES:', 18, currentY + 6 * scale)
+      doc.text('OBSERVAÇÕES:', 18, currentY + 7 * scale)
 
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(90, 70, 20)
-      doc.setFontSize(9 * scale)
-      doc.text(notesLines, 18, currentY + 11.5 * scale)
+      doc.setFontSize(12.5 * scale)
+      doc.text(notesLines, 18, currentY + 13.5 * scale)
 
       currentY += notesBoxH + 4 * scale
     }

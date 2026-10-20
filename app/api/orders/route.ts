@@ -74,7 +74,9 @@ function sanitizeDoorFields(raw: any): DoorConfig {
           .filter((e: any) => e && typeof e.name === 'string')
           .map((e: any) => ({
             name: e.name,
-            quantity: Math.max(1, Number(e.quantity) || 1),
+            ...(e.unit === 'm'
+              ? { unit: 'm' as const, quantity: Math.max(0.1, Math.round((Number(e.quantity) || 1) * 100) / 100) }
+              : { quantity: Math.max(1, Number(e.quantity) || 1) }),
             ...(Number.isFinite(Number(e.panel)) && Number(e.panel) > 0
               ? { panel: Math.max(1, Math.round(Number(e.panel))) }
               : {}),

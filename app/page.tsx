@@ -28,7 +28,9 @@ import {
   calculateMultiDoorQuote,
   isQuoteEdited,
   IVA_RATE,
+  PER_PANEL_METER_EXTRAS,
   PRICE_EDITED_NOTE,
+  formatExtra,
   type PricingInput,
 } from '@/lib/pricing'
 import { finalOpeningDimensions } from '@/lib/production'
@@ -749,10 +751,19 @@ function Configurator({
     [catalog, tubeCodes]
   )
   const extrasOptions = useMemo(() => sortedCatalog(catalog, 'extra').map((c) => c.code), [catalog])
+  // Extras ao metro onde se escrevem os metros diretamente (ex: tubos) — o Omega continua a contar
+  // painéis (ver PER_PANEL_METER_EXTRAS).
+  const extrasPerMeter = useMemo(
+    () =>
+      sortedCatalog(catalog, 'extra')
+        .filter((c) => c.unit === 'm' && !PER_PANEL_METER_EXTRAS.includes(c.code))
+        .map((c) => c.code),
+    [catalog]
+  )
   const extrasWithQuantity = useMemo(
     () =>
       sortedCatalog(catalog, 'extra')
-        .filter((c) => c.unit === 'm' || c.code === 'Grelhas de ventilação')
+        .filter((c) => (c.unit === 'm' && PER_PANEL_METER_EXTRAS.includes(c.code)) || c.code === 'Grelhas de ventilação')
         .map((c) => c.code),
     [catalog]
   )
@@ -810,7 +821,11 @@ function Configurator({
   const [windowsPanels, setWindowsPanels] = useState<number[]>([1])
   const [visorMaterial, setVisorMaterial] = useState<'vidro' | 'acrilico'>('vidro')
   const [rubberSeal, setRubberSeal] = useState(false)
-  const [extras, setExtras] = useState<{ name: string; quantity: number; panel?: number; panels?: number[] }[]>([])
+  const [extras, setExtras] = useState<
+    { name: string; quantity: number; unit?: 'm'; panel?: number; panels?: number[] }[]
+  >([])
+  // Texto a ser escrito nos campos de metros (ex: "2," a meio de escrever "2,5"), por extra.
+  const [extraMetersDraft, setExtraMetersDraft] = useState<Record<string, string>>({})
   const [montagens, setMontagens] = useState<string[]>([])
   const [automation, setAutomation] = useState('Nenhum')
   const [automationExtras, setAutomationExtras] = useState<{ name: string; quantity: number }[]>([])
@@ -1214,8 +1229,18 @@ function Configurator({
 
   const toggleExtra = (item: string) => {
     setExtras((prev) =>
-      prev.some((e) => e.name === item) ? prev.filter((e) => e.name !== item) : [...prev, { name: item, quantity: 1 }]
+      prev.some((e) => e.name === item)
+        ? prev.filter((e) => e.name !== item)
+        : [...prev, extrasPerMeter.includes(item) ? { name: item, quantity: 1, unit: 'm' as const } : { name: item, quantity: 1 }]
     )
+  }
+
+  const setExtraMeters = (item: string, raw: string) => {
+    setExtraMetersDraft((prev) => ({ ...prev, [item]: raw }))
+    const m = Number(raw.replace(',', '.'))
+    if (Number.isFinite(m) && m > 0) {
+      setExtras((prev) => prev.map((e) => (e.name === item ? { ...e, quantity: Math.round(m * 100) / 100 } : e)))
+    }
   }
 
   const setExtraQuantity = (item: string, quantity: number) => {
@@ -2408,7 +2433,25 @@ function Configurator({
                             />
                             {item}
                           </label>
-                          {selected && extrasWithQuantity.includes(item) && (
+                          {selected?.unit === 'm' && (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={extraMetersDraft[item] ?? String(selected.quantity).replace('.', ',')}
+                                onChange={(e) => setExtraMeters(item, e.target.value)}
+                                onBlur={() => setExtraMetersDraft((prev) => {
+                                  const next = { ...prev }
+                                  delete next[item]
+                                  return next
+                                })}
+                                aria-label={`Metros de ${item}`}
+                                className="h-6 w-16 rounded border border-[#dce5df] bg-white px-1.5 text-right text-xs font-bold text-[#16a34a] outline-none focus:border-[#16a34a]"
+                              />
+                              <span className="text-[10px] font-bold text-[#8a958f]">m</span>
+                            </div>
+                          )}
+                          {selected && selected.unit !== 'm' && extrasWithQuantity.includes(item) && (
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
@@ -7613,9 +7656,7 @@ function Admin({
                   <p className="col-span-2">
                     <b>Extras Adicionais:</b>{' '}
                     {selectedOrder.extras && selectedOrder.extras.length > 0
-                      ? selectedOrder.extras
-                          .map((e) => (e.quantity > 1 ? `${e.name} (×${e.quantity})` : e.name))
-                          .join(', ')
+                      ? selectedOrder.extras.map(formatExtra).join(', ')
                       : 'Nenhum'}
                   </p>
                   <p className="col-span-2">

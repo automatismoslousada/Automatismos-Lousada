@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { CatalogItem, DoorConfig, Order, StockOrder } from './types'
-import { applyPriceOverrides, calculateMultiDoorQuote, IVA_RATE, PRICE_EDITED_NOTE, PricingInput } from './pricing'
+import { applyPriceOverrides, calculateMultiDoorQuote, formatExtra, IVA_RATE, PRICE_EDITED_NOTE, PricingInput } from './pricing'
 import {
   FERRAGEM_EXTRA_NAMES,
   accessoriesBox,
@@ -767,12 +767,13 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
     ].filter((row) => row[1] !== '0') // itens não incluídos (qtd 0) não aparecem, para não confundir
 
     if (door.extras && door.extras.length > 0) {
-      const extrasQty = door.extras.reduce((sum, e) => sum + (e.quantity || 1), 0)
+      // Extras em metros contam como 1 artigo (os metros aparecem na especificação).
+      const extrasQty = door.extras.reduce((sum, e) => sum + (e.unit === 'm' ? 1 : e.quantity || 1), 0)
       tableData.push([
         'Extras Adicionais',
         `${extrasQty}`,
         'un',
-        door.extras.map((e) => (e.quantity > 1 ? `${e.name} ×${e.quantity}` : e.name)).join(' · '),
+        door.extras.map(formatExtra).join(' · '),
       ])
     }
 
@@ -1217,7 +1218,7 @@ function buildExtrasEAdicionaisFields(door: Order): FieldLine[] {
   if (otherExtras.length > 0) {
     fields.push({
       label: 'Extras',
-      value: otherExtras.map((e) => (e.quantity > 1 ? `${e.name} ×${e.quantity}` : e.name)).join(', '),
+      value: otherExtras.map(formatExtra).join(', '),
     })
   }
   if (door.montagens && door.montagens.length > 0) fields.push({ label: 'Montagens', value: door.montagens.join(', ') })

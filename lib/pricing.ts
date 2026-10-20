@@ -20,7 +20,7 @@ export interface PricingInput {
   serviceDoorType?: string
   serviceDoorPanicBar?: boolean
   serviceDoorAirSpring?: boolean
-  extras: { name: string; quantity: number }[]
+  extras: { name: string; quantity: number; unit?: 'm' }[]
   montagens?: string[]
   windows: boolean
   windowsQuantity?: number
@@ -86,6 +86,20 @@ const SMOOTH_CUSTOM_FALLBACK_PRICE = 75
 function mmToMeters(mm?: string): number {
   const n = parseFloat(mm || '')
   return Number.isFinite(n) && n > 0 ? n / 1000 : 0
+}
+
+// Extras ao metro cuja quantidade é o nº de painéis (o comprimento sai da largura da porta). Os
+// restantes extras ao metro (ex: tubos) pedem os metros diretamente no configurador.
+export const PER_PANEL_METER_EXTRAS = ['Omega', 'Omega lacada']
+
+export function formatMeters(m: number): string {
+  return m.toLocaleString('pt-PT', { maximumFractionDigits: 2 })
+}
+
+// Texto de um extra para documentos e ecrãs: "Tubo 80x40 · 2,5 m", "Omega ×7" ou só o nome.
+export function formatExtra(e: { name: string; quantity: number; unit?: 'm' }): string {
+  if (e.unit === 'm') return `${e.name} · ${formatMeters(e.quantity)} m`
+  return e.quantity > 1 ? `${e.name} ×${e.quantity}` : e.name
 }
 
 function findItem(catalog: CatalogItem[], category: string, code: string): CatalogItem | undefined {
@@ -249,6 +263,21 @@ export function calculateQuote(input: PricingInput, catalog: CatalogItem[]): Pri
   // 6. Extras adicionais
   for (const extra of input.extras || []) {
     const found = findItem(catalog, 'extra', extra.name)
+    // Metros escritos diretamente no configurador (ex: tubos): preço/m × metros.
+    if (extra.unit === 'm') {
+      const unitPrice = found?.price ?? null
+      const meters = Number(extra.quantity.toFixed(2))
+      items.push({
+        label: extra.name,
+        description: `${formatMeters(meters)} m`,
+        qty: meters,
+        unit: 'm',
+        unitPrice,
+        lineTotal: unitPrice != null ? Number((unitPrice * meters).toFixed(2)) : null,
+      })
+      continue
+    }
+    // Omega (e qualquer extra antigo ao metro sem unit): nº de painéis × largura da porta.
     if (found?.unit === 'm') {
       const unitPrice = found.price ?? null
       const meters = Number((extra.quantity * input.width).toFixed(2))

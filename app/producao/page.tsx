@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DoorConfig, Order, User } from '@/lib/types'
 import { buildOrderLabelsPDF, buildProductionSheetPDF, generateProductionSheetPDF } from '@/lib/pdf-generator'
+import { formatExtra } from '@/lib/pricing'
 import {
   FERRAGEM_EXTRA_NAMES,
   accessoriesBox,
@@ -432,7 +433,7 @@ function DoorSummary({
               <b>Extras:</b>{' '}
               {door.extras
                 .filter((e) => !FERRAGEM_EXTRA_NAMES.includes(e.name))
-                .map((e) => (e.quantity > 1 ? `${e.name} ×${e.quantity}` : e.name))
+                .map(formatExtra)
                 .join(', ')}
             </p>
           )}

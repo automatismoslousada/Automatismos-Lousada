@@ -59,7 +59,10 @@ export interface Order {
   windowsPanels: number[] // Painéis (a partir do topo) onde ficam os visores — pode ser mais do que um
   visorMaterial?: 'vidro' | 'acrilico'
   rubberSeal: boolean
-  extras: { name: string; quantity: number; panel?: number; panels?: number[] }[] // Extras adicionais selecionados, com quantidade (e painéis, para as grelhas de ventilação)
+  // Extras adicionais selecionados, com quantidade (e painéis, para as grelhas de ventilação).
+  // unit 'm' = a quantidade são metros escritos diretamente (ex: tubos); sem unit, é nº de
+  // unidades — ou nº de painéis, no caso do Omega (ver PER_PANEL_METER_EXTRAS em lib/pricing.ts).
+  extras: { name: string; quantity: number; unit?: 'm'; panel?: number; panels?: number[] }[]
   montagens: string[] // Serviços de montagem/instalação selecionados
   // Campos exclusivos da fábrica (perfil "fabrica", ver /producao) — undefined = a fábrica ainda
   // não definiu um valor explícito; a UI sugere widthMm + 30 como largura de corte sem persistir

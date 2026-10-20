@@ -237,6 +237,9 @@ export const stockOrderItems = pgTable(
     meters: numeric('meters', { mode: 'number' }),
     // Só para artigos ao m²: área de cada peça (3 placas de 1.5m² => quantity=3, squareMeters=1.5).
     squareMeters: numeric('square_meters', { mode: 'number' }),
+    // Só para artigos ao m²: largura × altura de cada peça (mm), de onde sai square_meters.
+    widthMm: integer('width_mm'),
+    heightMm: integer('height_mm'),
     lineTotal: numeric('line_total', { mode: 'number' }),
   },
   (table) => [index('stock_order_items_stock_order_id_idx').on(table.stockOrderId)]

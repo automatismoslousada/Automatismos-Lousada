@@ -273,6 +273,10 @@ export interface StockOrderItem {
   // Só para artigos 'm2': área de cada peça (ex: 3 placas de 1.5m² => quantity=3,
   // squareMeters=1.5, total 4.5m²). undefined em artigos 'un'/'m'.
   squareMeters?: number
+  // Só para artigos 'm2' (a partir desta versão): largura × altura de cada peça em mm, de onde
+  // sai squareMeters. undefined em encomendas antigas, que só guardavam a área.
+  widthMm?: number
+  heightMm?: number
   lineTotal?: number
 }
 

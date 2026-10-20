@@ -1862,7 +1862,9 @@ async function buildStockOrderPDF(order: StockOrder): Promise<{ doc: jsPDF; file
           : `${item.quantity} m`
         : item.unit === 'm2'
         ? item.squareMeters != null
-          ? `${item.quantity} × ${item.squareMeters} m²`
+          ? item.widthMm && item.heightMm
+            ? `${item.quantity} × ${item.widthMm}×${item.heightMm} mm (${item.squareMeters.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m²)`
+            : `${item.quantity} × ${item.squareMeters} m²`
           : `${item.quantity} m²`
         : `${item.quantity} un`
     const unitSuffix = item.unitPrice != null ? (item.unit === 'm' ? '/m' : item.unit === 'm2' ? '/m²' : '') : ''

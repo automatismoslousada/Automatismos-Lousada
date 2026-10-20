@@ -56,6 +56,8 @@ async function getItemsByOrderIds(orderIds: string[]): Promise<Map<string, Stock
       quantity: Number(row.quantity),
       meters: row.meters != null ? Number(row.meters) : undefined,
       squareMeters: row.squareMeters != null ? Number(row.squareMeters) : undefined,
+      widthMm: row.widthMm ?? undefined,
+      heightMm: row.heightMm ?? undefined,
       lineTotal: row.lineTotal != null ? Number(row.lineTotal) : undefined,
     }
     const list = map.get(row.stockOrderId) ?? []
@@ -126,6 +128,8 @@ export async function createStockOrder(data: {
     quantity: number
     meters?: number
     squareMeters?: number
+    widthMm?: number
+    heightMm?: number
   }[]
   createdBy: string
   createdByUserId?: string
@@ -176,6 +180,8 @@ export async function createStockOrder(data: {
         quantity: item.quantity,
         meters: item.meters ?? null,
         squareMeters: item.squareMeters ?? null,
+        widthMm: item.widthMm ?? null,
+        heightMm: item.heightMm ?? null,
         lineTotal: item.lineTotal,
       }))
     )

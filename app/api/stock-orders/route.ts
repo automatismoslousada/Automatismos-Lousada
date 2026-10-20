@@ -62,8 +62,16 @@ export async function POST(request: NextRequest) {
         const rawQuantity = Number(i.quantity) || 1
         const quantity = Math.max(1, Math.round(rawQuantity))
         const meters = product.unit === 'm' ? Math.max(0.1, Math.round((Number(i.meters) || 1) * 100) / 100) : undefined
+        // Artigos ao m²: largura × altura de cada peça em mm; a área sai daqui. Pedidos antigos
+        // (só com squareMeters) continuam a ser aceites.
+        const widthMm = product.unit === 'm2' && Number(i.widthMm) >= 1 ? Math.round(Number(i.widthMm)) : undefined
+        const heightMm = product.unit === 'm2' && Number(i.heightMm) >= 1 ? Math.round(Number(i.heightMm)) : undefined
         const squareMeters =
-          product.unit === 'm2' ? Math.max(0.1, Math.round((Number(i.squareMeters) || 1) * 100) / 100) : undefined
+          product.unit !== 'm2'
+            ? undefined
+            : widthMm && heightMm
+            ? Math.round((widthMm * heightMm) / 100) / 10000
+            : Math.max(0.1, Math.round((Number(i.squareMeters) || 1) * 100) / 100)
         return {
           productId: i.productId,
           productName: product.name,
@@ -72,6 +80,8 @@ export async function POST(request: NextRequest) {
           quantity,
           meters,
           squareMeters,
+          widthMm: squareMeters != null ? widthMm : undefined,
+          heightMm: squareMeters != null ? heightMm : undefined,
         }
       })
       .filter(
@@ -85,6 +95,8 @@ export async function POST(request: NextRequest) {
           quantity: number
           meters?: number
           squareMeters?: number
+          widthMm?: number
+          heightMm?: number
         } => i !== null
       )
 

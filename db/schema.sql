@@ -248,6 +248,11 @@ ALTER TABLE stock_order_items ALTER COLUMN quantity TYPE NUMERIC(10, 2);
 ALTER TABLE stock_order_items ALTER COLUMN quantity SET DEFAULT 1;
 ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS meters NUMERIC(10, 2);
 ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS square_meters NUMERIC(10, 2);
+-- Artigos ao m²: largura × altura de cada peça (mm); a área passa a ter 4 casas decimais para o
+-- total não arredondar (ex: 2350×487 mm = 1,1445 m²).
+ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS width_mm INTEGER;
+ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS height_mm INTEGER;
+ALTER TABLE stock_order_items ALTER COLUMN square_meters TYPE NUMERIC(10, 4);
 
 CREATE INDEX IF NOT EXISTS stock_order_items_stock_order_id_idx ON stock_order_items (stock_order_id);
 

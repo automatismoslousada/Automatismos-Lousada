@@ -4940,8 +4940,9 @@ function StockPanel({ user }: { user: User }) {
   const [cart, setCart] = useState<Record<string, number>>({})
   // Só para artigos ao metro: comprimento de cada peça (ex: 2 tubos de 2m => cart[id]=2, cartMeters[id]=2).
   const [cartMeters, setCartMeters] = useState<Record<string, number>>({})
-  // Só para artigos ao m²: área de cada peça (ex: 3 placas de 1.5m² => cart[id]=3, cartSquareMeters[id]=1.5).
-  const [cartSquareMeters, setCartSquareMeters] = useState<Record<string, number>>({})
+  // Só para artigos ao m²: largura × altura de cada peça em mm (ex: 3 painéis de 2000×500 =>
+  // cart[id]=3, cartDims[id]={w:2000,h:500}); a área (m²) é calculada a partir daqui.
+  const [cartDims, setCartDims] = useState<Record<string, { w: number; h: number }>>({})
   const [showCheckout, setShowCheckout] = useState(false)
   const [portfolioClients, setPortfolioClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
@@ -4976,7 +4977,7 @@ function StockPanel({ user }: { user: User }) {
       setCartMeters((prev) => (productId in prev ? prev : { ...prev, [productId]: 1 }))
     }
     if (product?.unit === 'm2') {
-      setCartSquareMeters((prev) => (productId in prev ? prev : { ...prev, [productId]: 1 }))
+      setCartDims((prev) => (productId in prev ? prev : { ...prev, [productId]: { w: 1000, h: 1000 } }))
     }
   }
   const setCartQty = (productId: string, qty: number) => {
@@ -4995,7 +4996,7 @@ function StockPanel({ user }: { user: User }) {
         delete next[productId]
         return next
       })
-      setCartSquareMeters((prev) => {
+      setCartDims((prev) => {
         if (!(productId in prev)) return prev
         const next = { ...prev }
         delete next[productId]
@@ -5005,17 +5006,31 @@ function StockPanel({ user }: { user: User }) {
   }
   const setCartMetersValue = (productId: string, meters: number) =>
     setCartMeters((prev) => ({ ...prev, [productId]: meters }))
-  const setCartSquareMetersValue = (productId: string, squareMeters: number) =>
-    setCartSquareMeters((prev) => ({ ...prev, [productId]: squareMeters }))
+  const setCartDim = (productId: string, key: 'w' | 'h', mm: number) =>
+    setCartDims((prev) => ({ ...prev, [productId]: { ...(prev[productId] ?? { w: 1000, h: 1000 }), [key]: mm } }))
   const cartEntries = Object.entries(cart)
-    .map(([productId, quantity]) => ({
-      product: products.find((p) => p.id === productId),
-      quantity,
-      meters: cartMeters[productId] ?? 1,
-      squareMeters: cartSquareMeters[productId] ?? 1,
-    }))
+    .map(([productId, quantity]) => {
+      const dims = cartDims[productId] ?? { w: 1000, h: 1000 }
+      return {
+        product: products.find((p) => p.id === productId),
+        quantity,
+        meters: cartMeters[productId] ?? 1,
+        widthMm: dims.w,
+        heightMm: dims.h,
+        squareMeters: (dims.w * dims.h) / 1e6,
+      }
+    })
     .filter(
-      (e): e is { product: StockProduct; quantity: number; meters: number; squareMeters: number } => !!e.product
+      (
+        e
+      ): e is {
+        product: StockProduct
+        quantity: number
+        meters: number
+        widthMm: number
+        heightMm: number
+        squareMeters: number
+      } => !!e.product
     )
   const cartCount = cartEntries.reduce((sum, e) => sum + e.quantity, 0)
   const cartMultiplier = (e: (typeof cartEntries)[number]) =>
@@ -5073,6 +5088,11 @@ function StockPanel({ user }: { user: User }) {
       setCheckoutError('Indique o nome do cliente')
       return
     }
+    const missingDims = cartEntries.find((e) => e.product.unit === 'm2' && (e.widthMm < 1 || e.heightMm < 1))
+    if (missingDims) {
+      setCheckoutError(`Indique a largura e a altura de "${missingDims.product.name}"`)
+      return
+    }
     setPlacingOrder(true)
     setCheckoutError('')
     try {
@@ -5085,7 +5105,8 @@ function StockPanel({ user }: { user: User }) {
             productId: e.product.id,
             quantity: e.quantity,
             meters: e.product.unit === 'm' ? e.meters : undefined,
-            squareMeters: e.product.unit === 'm2' ? e.squareMeters : undefined,
+            widthMm: e.product.unit === 'm2' ? e.widthMm : undefined,
+            heightMm: e.product.unit === 'm2' ? e.heightMm : undefined,
           })),
         }),
       })
@@ -5573,19 +5594,6 @@ function StockPanel({ user }: { user: User }) {
                           <span className="text-[10px] font-bold text-[#8a958f]">m/un</span>
                         </div>
                       )}
-                      {p.unit === 'm2' && (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0.1"
-                            value={cartSquareMeters[p.id] ?? 1}
-                            onChange={(e) => setCartSquareMetersValue(p.id, Math.max(0.1, Number(e.target.value) || 0))}
-                            className="h-7 w-14 rounded border border-[#dce5df] px-1.5 text-right text-xs font-bold text-[#16a34a] outline-none focus:border-[#16a34a]"
-                          />
-                          <span className="text-[10px] font-bold text-[#8a958f]">m²/un</span>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <button
@@ -5598,6 +5606,36 @@ function StockPanel({ user }: { user: User }) {
                   )
                 )}
               </div>
+              {p.unit === 'm2' && cart[p.id] ? (() => {
+                const d = cartDims[p.id] ?? { w: 1000, h: 1000 }
+                const area = (d.w * d.h) / 1e6
+                const dimInput = (key: 'w' | 'h', label: string) => (
+                  <label className="flex flex-1 flex-col gap-0.5">
+                    {label}
+                    <input
+                      type="number"
+                      min="1"
+                      step="10"
+                      value={d[key] || ''}
+                      onChange={(e) => setCartDim(p.id, key, Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                      className="h-8 w-full rounded border border-[#dce5df] bg-white px-2 text-right text-xs font-bold text-[#16a34a] outline-none focus:border-[#16a34a]"
+                    />
+                  </label>
+                )
+                return (
+                  <div className="flex flex-col gap-1.5 rounded-lg border border-[#e0e8e3] bg-[#f8faf8] p-2">
+                    <div className="flex items-end gap-1.5 text-[10px] font-bold text-[#56655e]">
+                      {dimInput('w', 'Largura (mm)')}
+                      <span className="pb-2 text-gray-400">×</span>
+                      {dimInput('h', 'Altura (mm)')}
+                    </div>
+                    <p className="text-[11px] text-[#56655e]">
+                      {area.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m² por peça · Total:{' '}
+                      <b className="text-[#16a34a]">{money((p.price ?? 0) * area * cart[p.id])}</b>
+                    </p>
+                  </div>
+                )
+              })() : null}
             </div>
           ))}
         </div>
@@ -5858,7 +5896,7 @@ function StockPanel({ user }: { user: User }) {
                     {e.product.unit === 'm'
                       ? `${e.quantity} × ${e.meters} m`
                       : e.product.unit === 'm2'
-                      ? `${e.quantity} × ${e.squareMeters} m²`
+                      ? `${e.quantity} × ${e.widthMm}×${e.heightMm} mm (${e.squareMeters.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m²)`
                       : `${e.quantity}×`}{' '}
                     {e.product.name}
                   </span>
@@ -7716,7 +7754,9 @@ function Admin({
                         : `${item.quantity} m`
                       : item.unit === 'm2'
                       ? item.squareMeters != null
-                        ? `${item.quantity} × ${item.squareMeters} m²`
+                        ? item.widthMm && item.heightMm
+                          ? `${item.quantity} × ${item.widthMm}×${item.heightMm} mm (${item.squareMeters.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m²)`
+                          : `${item.quantity} × ${item.squareMeters} m²`
                         : `${item.quantity} m²`
                       : `${item.quantity}×`}{' '}
                     {item.productName}

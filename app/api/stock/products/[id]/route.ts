@@ -26,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       name: typeof body.name === 'string' ? body.name.trim() : undefined,
       description: body.description,
       price: body.price === undefined ? undefined : body.price === '' || body.price == null ? null : Number(body.price),
-      unit: body.unit === 'un' || body.unit === 'm' ? body.unit : undefined,
+      unit: body.unit === 'un' || body.unit === 'm' || body.unit === 'm2' ? body.unit : undefined,
       photoUrl: body.photoUrl,
       fileUrl: body.fileUrl,
       fileName: body.fileName,

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       name: body.name.trim(),
       description: body.description || '',
       price: body.price === '' || body.price == null ? null : Number(body.price),
-      unit: body.unit === 'm' ? 'm' : 'un',
+      unit: body.unit === 'm' || body.unit === 'm2' ? body.unit : 'un',
       photoUrl: body.photoUrl || '',
       fileUrl: body.fileUrl || '',
       fileName: body.fileName || '',

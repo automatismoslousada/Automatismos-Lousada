@@ -4980,13 +4980,15 @@ function StockPanel({ user }: { user: User }) {
     )
   }
 
-  // Carrinho de compras — comercial, cliente (operador) e admin podem comprar; o admin também gere o catálogo.
-  const [cart, setCart] = useState<Record<string, number>>({})
-  // Só para artigos ao metro: comprimento de cada peça (ex: 2 tubos de 2m => cart[id]=2, cartMeters[id]=2).
-  const [cartMeters, setCartMeters] = useState<Record<string, number>>({})
-  // Só para artigos ao m²: largura × altura de cada peça em mm (ex: 3 painéis de 2000×500 =>
-  // cart[id]=3, cartDims[id]={w:2000,h:500}); a área (m²) é calculada a partir daqui.
-  const [cartDims, setCartDims] = useState<Record<string, { w: number; h: number }>>({})
+  // Carrinho de compras — comercial, cliente (operador) e admin podem comprar; o admin também gere o
+  // catálogo. Cada linha é uma peça/medida própria (ex: 1 grelha 2000×500 e outra 1500×500 são duas
+  // linhas); adicionar outra vez a mesma medida soma à linha que já existe.
+  type CartLine = { id: string; productId: string; quantity: number; meters: number; widthMm: number; heightMm: number }
+  const [cartLines, setCartLines] = useState<CartLine[]>([])
+  // O que está escrito no cartão de cada produto antes de carregar em "Adicionar".
+  type CartDraft = { qty: number; meters: number; w: number; h: number }
+  const [cartDrafts, setCartDrafts] = useState<Record<string, CartDraft>>({})
+  const [openBuy, setOpenBuy] = useState<Record<string, boolean>>({})
   const [showCheckout, setShowCheckout] = useState(false)
   const [showCart, setShowCart] = useState(false)
   const [portfolioClients, setPortfolioClients] = useState<Client[]>([])
@@ -5015,72 +5017,43 @@ function StockPanel({ user }: { user: User }) {
       .catch((err) => console.error('Erro ao carregar carteira de clientes:', err))
   }, [user.role])
 
+  const draftOf = (productId: string): CartDraft => cartDrafts[productId] ?? { qty: 1, meters: 1, w: 1000, h: 1000 }
+  const setDraft = (productId: string, patch: Partial<CartDraft>) =>
+    setCartDrafts((prev) => ({ ...prev, [productId]: { ...draftOf(productId), ...patch } }))
   const addToCart = (productId: string) => {
     const product = products.find((p) => p.id === productId)
-    setCart((prev) => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }))
-    if (product?.unit === 'm') {
-      setCartMeters((prev) => (productId in prev ? prev : { ...prev, [productId]: 1 }))
+    if (!product) return
+    const d = draftOf(productId)
+    const takesDims = stockUnitTakesDims(product.unit)
+    if (takesDims && (d.w < 1 || d.h < 1)) return
+    const line = {
+      productId,
+      quantity: Math.max(1, Math.round(d.qty) || 1),
+      meters: product.unit === 'm' ? Math.max(0.1, d.meters || 0) : 1,
+      widthMm: takesDims ? d.w : 0,
+      heightMm: takesDims ? d.h : 0,
     }
-    if (stockUnitTakesDims(product?.unit)) {
-      setCartDims((prev) => (productId in prev ? prev : { ...prev, [productId]: { w: 1000, h: 1000 } }))
-    }
-  }
-  const setCartQty = (productId: string, qty: number) => {
-    setCart((prev) => {
-      if (qty <= 0) {
-        const next = { ...prev }
-        delete next[productId]
-        return next
-      }
-      return { ...prev, [productId]: qty }
+    setCartLines((prev) => {
+      const same = prev.find(
+        (l) => l.productId === productId && l.meters === line.meters && l.widthMm === line.widthMm && l.heightMm === line.heightMm
+      )
+      if (same) return prev.map((l) => (l === same ? { ...l, quantity: l.quantity + line.quantity } : l))
+      return [...prev, { ...line, id: `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }]
     })
-    if (qty <= 0) {
-      setCartMeters((prev) => {
-        if (!(productId in prev)) return prev
-        const next = { ...prev }
-        delete next[productId]
-        return next
-      })
-      setCartDims((prev) => {
-        if (!(productId in prev)) return prev
-        const next = { ...prev }
-        delete next[productId]
-        return next
-      })
-    }
   }
-  const setCartMetersValue = (productId: string, meters: number) =>
-    setCartMeters((prev) => ({ ...prev, [productId]: meters }))
-  const setCartDim = (productId: string, key: 'w' | 'h', mm: number) =>
-    setCartDims((prev) => ({ ...prev, [productId]: { ...(prev[productId] ?? { w: 1000, h: 1000 }), [key]: mm } }))
-  const cartEntries = Object.entries(cart)
-    .map(([productId, quantity]) => {
-      const dims = cartDims[productId] ?? { w: 1000, h: 1000 }
-      return {
-        product: products.find((p) => p.id === productId),
-        quantity,
-        meters: cartMeters[productId] ?? 1,
-        widthMm: dims.w,
-        heightMm: dims.h,
-        squareMeters: (dims.w * dims.h) / 1e6,
-      }
-    })
-    .filter(
-      (
-        e
-      ): e is {
-        product: StockProduct
-        quantity: number
-        meters: number
-        widthMm: number
-        heightMm: number
-        squareMeters: number
-      } => !!e.product
+  const setLineQty = (lineId: string, qty: number) =>
+    setCartLines((prev) =>
+      qty <= 0 ? prev.filter((l) => l.id !== lineId) : prev.map((l) => (l.id === lineId ? { ...l, quantity: qty } : l))
     )
+  const cartEntries = cartLines
+    .map((l) => ({ ...l, product: products.find((p) => p.id === l.productId), squareMeters: (l.widthMm * l.heightMm) / 1e6 }))
+    .filter((e): e is CartLine & { product: StockProduct; squareMeters: number } => !!e.product)
   const cartCount = cartEntries.reduce((sum, e) => sum + e.quantity, 0)
+  const inCartQty = (productId: string) => cartLines.filter((l) => l.productId === productId).reduce((s, l) => s + l.quantity, 0)
   // Preço da linha = preço × peças × (metros por peça | m² por peça | metros da largura, no 'ml').
-  const cartMultiplier = (e: (typeof cartEntries)[number]) =>
-    e.product.unit === 'm' ? e.meters : e.product.unit === 'm2' ? e.squareMeters : e.product.unit === 'ml' ? e.widthMm / 1000 : 1
+  const lineMultiplier = (unit: StockProductUnit | undefined, meters: number, w: number, h: number) =>
+    unit === 'm' ? meters : unit === 'm2' ? (w * h) / 1e6 : unit === 'ml' ? w / 1000 : 1
+  const cartMultiplier = (e: (typeof cartEntries)[number]) => lineMultiplier(e.product.unit, e.meters, e.widthMm, e.heightMm)
   const cartTotal = cartEntries.reduce((sum, e) => sum + (e.product.price ?? 0) * e.quantity * cartMultiplier(e), 0)
 
   const handlePickPortfolioClient = (id: string) => {
@@ -5159,7 +5132,7 @@ function StockPanel({ user }: { user: User }) {
       const data = await res.json()
       if (data.success) {
         setCreatedStockOrder(data.stockOrder)
-        setCart({})
+        setCartLines([])
         setShowCheckout(false)
         notifyOwnerStock(data.stockOrder)
       } else {
@@ -5608,83 +5581,95 @@ function StockPanel({ user }: { user: User }) {
                   {money(p.price)}
                   {p.price != null && stockUnitSuffix(p.unit) && <span className="text-xs font-semibold">{stockUnitSuffix(p.unit)}</span>}
                 </p>
-                {p.price != null && (
-                  cart[p.id] ? (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setCartQty(p.id, (cart[p.id] || 0) - 1)}
-                        className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
-                      >
-                        <Minus className="size-3" />
-                      </button>
-                      <span className="w-5 text-center text-xs font-bold text-[#16a34a]">{cart[p.id]}</span>
-                      <button
-                        type="button"
-                        onClick={() => addToCart(p.id)}
-                        className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
-                      >
-                        <Plus className="size-3" />
-                      </button>
-                      {p.unit === 'm' && (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0.1"
-                            value={cartMeters[p.id] ?? 1}
-                            onChange={(e) => setCartMetersValue(p.id, Math.max(0.1, Number(e.target.value) || 0))}
-                            className="h-7 w-14 rounded border border-[#dce5df] px-1.5 text-right text-xs font-bold text-[#16a34a] outline-none focus:border-[#16a34a]"
-                          />
-                          <span className="text-[10px] font-bold text-[#8a958f]">m/un</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => addToCart(p.id)}
-                      className="flex items-center gap-1 rounded-lg bg-[#16a34a] px-2.5 py-1.5 text-xs font-bold text-white hover:bg-[#12883d]"
-                    >
-                      <Plus className="size-3" /> Comprar
-                    </button>
-                  )
+                {p.price != null && !openBuy[p.id] && (
+                  <button
+                    type="button"
+                    onClick={() => setOpenBuy((prev) => ({ ...prev, [p.id]: true }))}
+                    className="flex items-center gap-1 rounded-lg bg-[#16a34a] px-2.5 py-1.5 text-xs font-bold text-white hover:bg-[#12883d]"
+                  >
+                    <Plus className="size-3" /> Comprar
+                  </button>
                 )}
               </div>
-              {stockUnitTakesDims(p.unit) && cart[p.id] ? (() => {
-                const d = cartDims[p.id] ?? { w: 1000, h: 1000 }
-                const area = (d.w * d.h) / 1e6
-                const isLinear = p.unit === 'ml'
-                const dimInput = (key: 'w' | 'h', label: string) => (
+              {p.price != null && openBuy[p.id] && (() => {
+                const d = draftOf(p.id)
+                const takesDims = stockUnitTakesDims(p.unit)
+                const invalid = takesDims && (d.w < 1 || d.h < 1)
+                const per = lineMultiplier(p.unit, d.meters, d.w, d.h)
+                const inCart = inCartQty(p.id)
+                const numInput = (value: number, onChange: (v: number) => void, step: string, label: string) => (
                   <label className="flex flex-1 flex-col gap-0.5">
                     {label}
                     <input
                       type="number"
-                      min="1"
-                      step="10"
-                      value={d[key] || ''}
-                      onChange={(e) => setCartDim(p.id, key, Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                      min="0"
+                      step={step}
+                      value={value || ''}
+                      onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
                       className="h-8 w-full rounded border border-[#dce5df] bg-white px-2 text-right text-xs font-bold text-[#16a34a] outline-none focus:border-[#16a34a]"
                     />
                   </label>
                 )
                 return (
                   <div className="flex flex-col gap-1.5 rounded-lg border border-[#e0e8e3] bg-[#f8faf8] p-2">
-                    <div className="flex items-end gap-1.5 text-[10px] font-bold text-[#56655e]">
-                      {dimInput('w', 'Largura (mm)')}
-                      <span className="pb-2 text-gray-400">×</span>
-                      {dimInput('h', 'Altura (mm)')}
+                    {takesDims && (
+                      <div className="flex items-end gap-1.5 text-[10px] font-bold text-[#56655e]">
+                        {numInput(d.w, (v) => setDraft(p.id, { w: Math.round(v) }), '10', 'Largura (mm)')}
+                        <span className="pb-2 text-gray-400">×</span>
+                        {numInput(d.h, (v) => setDraft(p.id, { h: Math.round(v) }), '10', 'Altura (mm)')}
+                      </div>
+                    )}
+                    {p.unit === 'm' && (
+                      <div className="flex text-[10px] font-bold text-[#56655e]">
+                        {numInput(d.meters, (v) => setDraft(p.id, { meters: v }), '0.1', 'Comprimento por peça (m)')}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDraft(p.id, { qty: Math.max(1, d.qty - 1) })}
+                          className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
+                          aria-label="Menos uma peça"
+                        >
+                          <Minus className="size-3" />
+                        </button>
+                        <span className="w-6 text-center text-xs font-bold text-[#16a34a]">{d.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => setDraft(p.id, { qty: d.qty + 1 })}
+                          className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
+                          aria-label="Mais uma peça"
+                        >
+                          <Plus className="size-3" />
+                        </button>
+                        <span className="text-[10px] font-bold text-[#8a958f]">peça{d.qty === 1 ? '' : 's'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={invalid}
+                        onClick={() => addToCart(p.id)}
+                        className="flex items-center gap-1 rounded-lg bg-[#16a34a] px-2.5 py-1.5 text-xs font-bold text-white hover:bg-[#12883d] disabled:opacity-50"
+                      >
+                        <Plus className="size-3" /> Adicionar
+                      </button>
                     </div>
                     <p className="text-[11px] text-[#56655e]">
-                      {isLinear
-                        ? `${(d.w / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m lineares por peça (pela largura)`
-                        : `${area.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m² por peça`}{' '}
-                      · Total:{' '}
-                      <b className="text-[#16a34a]">{money((p.price ?? 0) * (isLinear ? d.w / 1000 : area) * cart[p.id])}</b>
+                      {p.unit === 'ml'
+                        ? `${(d.w / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m lineares por peça (pela largura) · `
+                        : p.unit === 'm2'
+                        ? `${per.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m² por peça · `
+                        : ''}
+                      Esta linha: <b className="text-[#16a34a]">{money((p.price ?? 0) * per * Math.max(1, d.qty))}</b>
                     </p>
+                    {inCart > 0 && (
+                      <p className="text-[11px] font-bold text-[#16a34a]">
+                        ✓ {inCart} no carrinho — para outra medida, mude os valores e carregue outra vez em Adicionar.
+                      </p>
+                    )}
                   </div>
                 )
-              })() : null}
+              })()}
             </div>
           ))}
         </div>
@@ -5730,7 +5715,7 @@ function StockPanel({ user }: { user: User }) {
               ) : (
                 <div className="flex flex-col divide-y divide-[#f0f3f1]">
                   {cartEntries.map((e) => (
-                    <div key={e.product.id} className="flex items-start gap-3 py-3">
+                    <div key={e.id} className="flex items-start gap-3 py-3">
                       {e.product.photoUrl ? (
                         <img src={e.product.photoUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover ring-1 ring-black/5" />
                       ) : (
@@ -5744,7 +5729,7 @@ function StockPanel({ user }: { user: User }) {
                         <div className="mt-1.5 flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setCartQty(e.product.id, e.quantity - 1)}
+                            onClick={() => setLineQty(e.id, e.quantity - 1)}
                             className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
                             aria-label="Menos uma peça"
                           >
@@ -5753,7 +5738,7 @@ function StockPanel({ user }: { user: User }) {
                           <span className="w-5 text-center text-xs font-bold text-[#16a34a]">{e.quantity}</span>
                           <button
                             type="button"
-                            onClick={() => addToCart(e.product.id)}
+                            onClick={() => setLineQty(e.id, e.quantity + 1)}
                             className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
                             aria-label="Mais uma peça"
                           >
@@ -5761,7 +5746,7 @@ function StockPanel({ user }: { user: User }) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setCartQty(e.product.id, 0)}
+                            onClick={() => setLineQty(e.id, 0)}
                             className="ml-1 flex items-center gap-1 rounded px-1.5 py-1 text-[11px] font-bold text-red-600 hover:bg-red-50"
                           >
                             <Trash2 className="size-3.5" /> Remover
@@ -5781,7 +5766,7 @@ function StockPanel({ user }: { user: User }) {
                 <span className="text-[#152126]">Total (sem IVA)</span>
                 <span className="text-lg text-[#16a34a]">{cartTotal.toFixed(2)} €</span>
               </div>
-              <p className="mb-3 text-[11px] text-[#8a958f]">Para mudar medidas, volte ao produto na lista.</p>
+              <p className="mb-3 text-[11px] text-[#8a958f]">Cada medida é uma linha. Para outra medida, adicione-a a partir do produto.</p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -6041,7 +6026,7 @@ function StockPanel({ user }: { user: User }) {
 
             <div className="flex flex-col divide-y divide-[#f0f3f1] rounded-lg border border-[#e0e8e3]">
               {cartEntries.map((e) => (
-                <div key={e.product.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
+                <div key={e.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
                   <span className="font-bold text-[#152126]">
                     {formatStockQty({ ...e, unit: e.product.unit })}{' '}
                     {e.product.name}

@@ -6920,7 +6920,7 @@ function Admin({
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('Todos')
-  const [kindFilter, setKindFilter] = useState<'Todos' | 'encomenda' | 'orcamento'>('Todos')
+  const [kindFilter, setKindFilter] = useState<'Todos' | 'encomenda' | 'orcamento' | 'artigos'>('Todos')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [emailTarget, setEmailTarget] = useState<EmailTarget>(null)
@@ -6986,7 +6986,7 @@ function Admin({
       setLoading(true)
       const params = new URLSearchParams()
       if (statusFilter !== 'Todos') params.set('status', statusFilter)
-      if (kindFilter !== 'Todos') params.set('kind', kindFilter)
+      if (kindFilter === 'encomenda' || kindFilter === 'orcamento') params.set('kind', kindFilter)
       if (search.trim()) params.set('search', search.trim())
 
       const res = await fetch(`/api/orders?${params.toString()}`)
@@ -7058,6 +7058,294 @@ function Admin({
     }
   }
 
+  // Linhas da tabela de Gestão de Encomendas — portas e pedidos de Outros Artigos juntam-se numa só
+  // lista ordenada por data (mais recente primeiro), em vez de os artigos ficarem todos no fim.
+  const renderDoorRow = (order: Order) => (
+    <tr key={order.id} className="hover:bg-[#fbfcfb] transition">
+      {/* ID / Referência */}
+      <td className="px-5 py-4">
+        <span className="font-mono text-xs font-bold text-[#16a34a] bg-[#e9f7ee] px-2.5 py-1 rounded-md">
+          {order.id}
+        </span>
+      </td>
+
+      {/* Tipo: Encomenda ou Orçamento */}
+      <td className="px-5 py-4">
+        {order.kind === 'orcamento' ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#edf3ff] px-2.5 py-1 text-[11px] font-bold text-[#3664aa]">
+            💶 Orçamento
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#f4f7f5] px-2.5 py-1 text-[11px] font-bold text-[#56655e]">
+            📦 Encomenda
+          </span>
+        )}
+      </td>
+
+      {/* Cliente */}
+      <td className="px-5 py-4">
+        <p className="font-bold text-[#152126] text-xs">{order.client}</p>
+        {order.clientAddress && (
+          <p className="text-[11px] text-[#7f8c85]">{order.clientAddress}</p>
+        )}
+        {order.createdBy && (
+          <p className="text-[11px] text-[#9aa6a0]">Criado por: {order.createdBy}</p>
+        )}
+      </td>
+
+      {/* Medidas */}
+      <td className="px-5 py-4">
+        <p className="font-semibold text-xs text-[#2a3630]">
+          {order.widthMm} × {order.heightMm} mm
+        </p>
+        <p className="text-[10px] text-[#86928b]">
+          {order.area} m² · Padieira: {order.paddingMm} mm
+        </p>
+      </td>
+
+      {/* Modelo e Cor RAL */}
+      <td className="px-5 py-4">
+        <div className="flex items-center gap-2">
+          <span
+            className="size-3.5 rounded-full border border-black/20 shadow-xs"
+            style={{ backgroundColor: order.colorHex }}
+          />
+          <div>
+            <p className="text-xs font-semibold text-[#152126]">{order.colorCode}</p>
+            <p className="text-[10px] text-[#86928b] font-medium">
+              {order.model === 'smooth'
+                ? 'Total Liso'
+                : order.model === 'cassette'
+                ? 'Almofadado'
+                : 'Canelado'}
+            </p>
+          </div>
+        </div>
+      </td>
+
+      {/* Estrutura de Falsas em Unidades */}
+      <td className="px-5 py-4 text-xs text-[#526058]">
+        {(order.tubeLeft !== 'Nenhum' || order.tubeRight !== 'Nenhum') ? (
+          <p className="font-semibold text-[#16a34a]">
+            {order.tubeLeft !== 'Nenhum' && <span>Omb E · </span>}
+            {order.tubeRight !== 'Nenhum' && <span>Omb D</span>}
+          </p>
+        ) : null}
+        {order.header !== 'Nenhum' ? (
+          <p className="text-[11px] text-gray-600">
+            Pad: {order.headerUnits || 1} un
+          </p>
+        ) : null}
+        {order.tubeLeft === 'Nenhum' && order.tubeRight === 'Nenhum' && order.header === 'Nenhum' ? (
+          <span className="text-[11px] text-gray-400">Sem falsas</span>
+        ) : null}
+      </td>
+
+      {/* Motor & Calha */}
+      <td className="px-5 py-4 text-xs text-[#526058]">
+        <p className="truncate max-w-[180px]" title={order.rail !== 'Nenhum' ? order.rail : order.automation}>
+          {order.rail !== 'Nenhum' ? order.rail : order.automation !== 'Nenhum' ? order.automation : 'Manual'}
+        </p>
+      </td>
+
+      {/* Estado — só o admin pode mudar; comercial/cliente só veem */}
+      <td className="px-5 py-4">
+        {canManage ? (
+        <select
+          disabled={updatingId === order.id}
+          value={order.status}
+          onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
+          className={`rounded-lg border px-2.5 py-1 text-xs font-bold outline-none cursor-pointer transition ${
+            order.status === 'Concluído'
+              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
+              : order.status === 'Produção'
+              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
+              : order.status === 'Cancelado'
+              ? 'bg-red-50 text-red-700 border-red-200'
+              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
+          }`}
+        >
+          <option value="Em análise">Em análise</option>
+          <option value="Produção">Produção</option>
+          <option value="Concluído">Concluído</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+        ) : (
+        <span
+          className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-bold ${
+            order.status === 'Concluído'
+              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
+              : order.status === 'Produção'
+              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
+              : order.status === 'Cancelado'
+              ? 'bg-red-50 text-red-700 border-red-200'
+              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
+          }`}
+        >
+          {order.status}
+        </span>
+        )}
+      </td>
+
+      {/* Botões de Ação com Desenho no PDF */}
+      <td className="px-5 py-4 text-center">
+        <div className="flex items-center justify-center gap-1.5">
+          {/* Botão Download PDF com Desenho */}
+          <button
+            type="button"
+            onClick={() => generateOrderPDF(order)}
+            title="Descarregar Ficha Técnica (PDF com Desenho Técnico)"
+            className="flex size-8 items-center justify-center rounded-lg bg-[#16a34a] text-white hover:bg-[#12883d] transition shadow-xs"
+          >
+            <Download className="size-4" />
+          </button>
+
+          {/* Botão Download Orçamento com Preços — só admin */}
+          {canManage && (
+          <button
+            type="button"
+            onClick={() => generateQuotePDF(order)}
+            title="Descarregar Orçamento (PDF com Preços)"
+            className="flex size-8 items-center justify-center rounded-lg border border-[#16a34a]/40 bg-[#e9f7ee] text-[#16a34a] hover:bg-[#d8f0df] transition shadow-xs"
+          >
+            <Euro className="size-4" />
+          </button>
+          )}
+
+          {/* Botão Enviar por Email */}
+          <button
+            type="button"
+            onClick={() => setEmailTarget({ order, kind: 'encomenda' })}
+            title="Enviar Ficha Técnica por Email"
+            className="flex size-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
+          >
+            <Mail className="size-4" />
+          </button>
+
+          {/* Botão Ver Detalhes */}
+          <button
+            type="button"
+            onClick={() => setSelectedOrder(order)}
+            title="Ver Ficha Técnica Completa"
+            className="flex size-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
+          >
+            <Eye className="size-4" />
+          </button>
+
+          {/* Botão Eliminar — só admin */}
+          {canManage && (
+          <button
+            type="button"
+            onClick={() => handleDeleteOrder(order.id)}
+            title="Eliminar da BD"
+            className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+  const renderStockRow = (stockOrder: StockOrder) => (
+    <tr key={stockOrder.id} className="hover:bg-[#fbfcfb] transition">
+      <td className="px-5 py-4">
+        <span className="font-mono text-xs font-bold text-[#16a34a] bg-[#e9f7ee] px-2.5 py-1 rounded-md">
+          {stockOrder.id}
+        </span>
+      </td>
+      <td className="px-5 py-4">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#fdf2e9] px-2.5 py-1 text-[11px] font-bold text-[#b5651d]">
+          🧰 Artigos
+        </span>
+      </td>
+      <td className="px-5 py-4">
+        <p className="font-bold text-[#152126] text-xs">{stockOrder.client}</p>
+        {stockOrder.clientAddress && (
+          <p className="text-[11px] text-[#7f8c85]">{stockOrder.clientAddress}</p>
+        )}
+        {stockOrder.createdBy && (
+          <p className="text-[11px] text-[#9aa6a0]">Criado por: {stockOrder.createdBy}</p>
+        )}
+      </td>
+      <td className="px-5 py-4 text-xs text-[#526058]" colSpan={4}>
+        {stockOrder.items.length} artigo{stockOrder.items.length > 1 ? 's' : ''}
+        {canManage && (
+          <>
+            {' '}
+            · <span className="font-semibold text-[#16a34a]">{stockOrder.totalPrice.toFixed(2)} €</span> sem IVA
+          </>
+        )}
+      </td>
+      <td className="px-5 py-4">
+        {canManage ? (
+        <select
+          disabled={updatingStockId === stockOrder.id}
+          value={stockOrder.status}
+          onChange={(e) => handleStockStatusChange(stockOrder.id, e.target.value as OrderStatus)}
+          className={`rounded-lg border px-2.5 py-1 text-xs font-bold outline-none cursor-pointer transition ${
+            stockOrder.status === 'Concluído'
+              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
+              : stockOrder.status === 'Produção'
+              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
+              : stockOrder.status === 'Cancelado'
+              ? 'bg-red-50 text-red-700 border-red-200'
+              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
+          }`}
+        >
+          <option value="Em análise">Em análise</option>
+          <option value="Produção">Produção</option>
+          <option value="Concluído">Concluído</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+        ) : (
+        <span
+          className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-bold ${
+            stockOrder.status === 'Concluído'
+              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
+              : stockOrder.status === 'Produção'
+              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
+              : stockOrder.status === 'Cancelado'
+              ? 'bg-red-50 text-red-700 border-red-200'
+              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
+          }`}
+        >
+          {stockOrder.status}
+        </span>
+        )}
+      </td>
+      <td className="px-5 py-4 text-center">
+        <div className="flex items-center justify-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => generateStockOrderPDF(stockOrder)}
+            title="Descarregar PDF do Pedido"
+            className="flex size-8 items-center justify-center rounded-lg bg-[#16a34a] text-white hover:bg-[#12883d] transition shadow-xs"
+          >
+            <Download className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedStockOrder(stockOrder)}
+            title="Ver Detalhes do Pedido"
+            className="flex size-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
+          >
+            <Eye className="size-4" />
+          </button>
+          {canManage && (
+          <button
+            type="button"
+            onClick={() => handleDeleteStockOrder(stockOrder.id)}
+            title="Eliminar da BD"
+            className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
   return (
     <div className="min-h-screen bg-[#f3f6f4] text-[#152126]">
       <TopNav
@@ -7137,6 +7425,7 @@ function Admin({
                     { value: 'Todos', label: '📑 Todos' },
                     { value: 'encomenda', label: '📦 Encomendas' },
                     { value: 'orcamento', label: '💶 Orçamentos' },
+                    { value: 'artigos', label: '🧰 Artigos' },
                   ] as const
                 ).map((opt) => (
                   <button
@@ -7204,310 +7493,36 @@ function Admin({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#edf1ee]">
-                {loading ? (
+                {(() => {
+                  if (loading) return (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-xs text-gray-400">
                       <Loader2 className="mx-auto mb-2 size-6 animate-spin text-[#16a34a]" />
                       A carregar dados da base de dados...
                     </td>
                   </tr>
-                ) : orders.length === 0 ? (
+                  )
+                  const q = search.trim().toLowerCase()
+                  const visibleStock =
+                    kindFilter === 'orcamento'
+                      ? []
+                      : stockOrders
+                          .filter((o) => (statusFilter === 'Todos' ? true : o.status === statusFilter))
+                          .filter((o) => (q ? o.client.toLowerCase().includes(q) || o.id.toLowerCase().includes(q) : true))
+                  const visibleDoors = kindFilter === 'artigos' ? [] : orders
+                  const rows = [
+                    ...visibleDoors.map((o) => ({ at: o.createdAt, el: renderDoorRow(o) })),
+                    ...visibleStock.map((o) => ({ at: o.createdAt, el: renderStockRow(o) })),
+                  ].sort((a, b) => b.at.localeCompare(a.at))
+                  if (rows.length === 0) return (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-xs text-gray-500">
                       Nenhuma encomenda encontrada com os filtros selecionados.
                     </td>
                   </tr>
-                ) : (
-                  orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-[#fbfcfb] transition">
-                      {/* ID / Referência */}
-                      <td className="px-5 py-4">
-                        <span className="font-mono text-xs font-bold text-[#16a34a] bg-[#e9f7ee] px-2.5 py-1 rounded-md">
-                          {order.id}
-                        </span>
-                      </td>
-
-                      {/* Tipo: Encomenda ou Orçamento */}
-                      <td className="px-5 py-4">
-                        {order.kind === 'orcamento' ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#edf3ff] px-2.5 py-1 text-[11px] font-bold text-[#3664aa]">
-                            💶 Orçamento
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#f4f7f5] px-2.5 py-1 text-[11px] font-bold text-[#56655e]">
-                            📦 Encomenda
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Cliente */}
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-[#152126] text-xs">{order.client}</p>
-                        {order.clientAddress && (
-                          <p className="text-[11px] text-[#7f8c85]">{order.clientAddress}</p>
-                        )}
-                        {order.createdBy && (
-                          <p className="text-[11px] text-[#9aa6a0]">Criado por: {order.createdBy}</p>
-                        )}
-                      </td>
-
-                      {/* Medidas */}
-                      <td className="px-5 py-4">
-                        <p className="font-semibold text-xs text-[#2a3630]">
-                          {order.widthMm} × {order.heightMm} mm
-                        </p>
-                        <p className="text-[10px] text-[#86928b]">
-                          {order.area} m² · Padieira: {order.paddingMm} mm
-                        </p>
-                      </td>
-
-                      {/* Modelo e Cor RAL */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="size-3.5 rounded-full border border-black/20 shadow-xs"
-                            style={{ backgroundColor: order.colorHex }}
-                          />
-                          <div>
-                            <p className="text-xs font-semibold text-[#152126]">{order.colorCode}</p>
-                            <p className="text-[10px] text-[#86928b] font-medium">
-                              {order.model === 'smooth'
-                                ? 'Total Liso'
-                                : order.model === 'cassette'
-                                ? 'Almofadado'
-                                : 'Canelado'}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Estrutura de Falsas em Unidades */}
-                      <td className="px-5 py-4 text-xs text-[#526058]">
-                        {(order.tubeLeft !== 'Nenhum' || order.tubeRight !== 'Nenhum') ? (
-                          <p className="font-semibold text-[#16a34a]">
-                            {order.tubeLeft !== 'Nenhum' && <span>Omb E · </span>}
-                            {order.tubeRight !== 'Nenhum' && <span>Omb D</span>}
-                          </p>
-                        ) : null}
-                        {order.header !== 'Nenhum' ? (
-                          <p className="text-[11px] text-gray-600">
-                            Pad: {order.headerUnits || 1} un
-                          </p>
-                        ) : null}
-                        {order.tubeLeft === 'Nenhum' && order.tubeRight === 'Nenhum' && order.header === 'Nenhum' ? (
-                          <span className="text-[11px] text-gray-400">Sem falsas</span>
-                        ) : null}
-                      </td>
-
-                      {/* Motor & Calha */}
-                      <td className="px-5 py-4 text-xs text-[#526058]">
-                        <p className="truncate max-w-[180px]" title={order.rail !== 'Nenhum' ? order.rail : order.automation}>
-                          {order.rail !== 'Nenhum' ? order.rail : order.automation !== 'Nenhum' ? order.automation : 'Manual'}
-                        </p>
-                      </td>
-
-                      {/* Estado — só o admin pode mudar; comercial/cliente só veem */}
-                      <td className="px-5 py-4">
-                        {canManage ? (
-                        <select
-                          disabled={updatingId === order.id}
-                          value={order.status}
-                          onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                          className={`rounded-lg border px-2.5 py-1 text-xs font-bold outline-none cursor-pointer transition ${
-                            order.status === 'Concluído'
-                              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
-                              : order.status === 'Produção'
-                              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
-                              : order.status === 'Cancelado'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
-                          }`}
-                        >
-                          <option value="Em análise">Em análise</option>
-                          <option value="Produção">Produção</option>
-                          <option value="Concluído">Concluído</option>
-                          <option value="Cancelado">Cancelado</option>
-                        </select>
-                        ) : (
-                        <span
-                          className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-bold ${
-                            order.status === 'Concluído'
-                              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
-                              : order.status === 'Produção'
-                              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
-                              : order.status === 'Cancelado'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
-                          }`}
-                        >
-                          {order.status}
-                        </span>
-                        )}
-                      </td>
-
-                      {/* Botões de Ação com Desenho no PDF */}
-                      <td className="px-5 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Botão Download PDF com Desenho */}
-                          <button
-                            type="button"
-                            onClick={() => generateOrderPDF(order)}
-                            title="Descarregar Ficha Técnica (PDF com Desenho Técnico)"
-                            className="flex size-8 items-center justify-center rounded-lg bg-[#16a34a] text-white hover:bg-[#12883d] transition shadow-xs"
-                          >
-                            <Download className="size-4" />
-                          </button>
-
-                          {/* Botão Download Orçamento com Preços — só admin */}
-                          {canManage && (
-                          <button
-                            type="button"
-                            onClick={() => generateQuotePDF(order)}
-                            title="Descarregar Orçamento (PDF com Preços)"
-                            className="flex size-8 items-center justify-center rounded-lg border border-[#16a34a]/40 bg-[#e9f7ee] text-[#16a34a] hover:bg-[#d8f0df] transition shadow-xs"
-                          >
-                            <Euro className="size-4" />
-                          </button>
-                          )}
-
-                          {/* Botão Enviar por Email */}
-                          <button
-                            type="button"
-                            onClick={() => setEmailTarget({ order, kind: 'encomenda' })}
-                            title="Enviar Ficha Técnica por Email"
-                            className="flex size-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
-                          >
-                            <Mail className="size-4" />
-                          </button>
-
-                          {/* Botão Ver Detalhes */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrder(order)}
-                            title="Ver Ficha Técnica Completa"
-                            className="flex size-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
-                          >
-                            <Eye className="size-4" />
-                          </button>
-
-                          {/* Botão Eliminar — só admin */}
-                          {canManage && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteOrder(order.id)}
-                            title="Eliminar da BD"
-                            className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-                {stockOrders
-                  .filter((o) => (statusFilter === 'Todos' ? true : o.status === statusFilter))
-                  .filter((o) => (search.trim() ? o.client.toLowerCase().includes(search.trim().toLowerCase()) || o.id.toLowerCase().includes(search.trim().toLowerCase()) : true))
-                  .map((stockOrder) => (
-                    <tr key={stockOrder.id} className="hover:bg-[#fbfcfb] transition">
-                      <td className="px-5 py-4">
-                        <span className="font-mono text-xs font-bold text-[#16a34a] bg-[#e9f7ee] px-2.5 py-1 rounded-md">
-                          {stockOrder.id}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#fdf2e9] px-2.5 py-1 text-[11px] font-bold text-[#b5651d]">
-                          🧰 Artigos
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-[#152126] text-xs">{stockOrder.client}</p>
-                        {stockOrder.clientAddress && (
-                          <p className="text-[11px] text-[#7f8c85]">{stockOrder.clientAddress}</p>
-                        )}
-                        {stockOrder.createdBy && (
-                          <p className="text-[11px] text-[#9aa6a0]">Criado por: {stockOrder.createdBy}</p>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-xs text-[#526058]" colSpan={4}>
-                        {stockOrder.items.length} artigo{stockOrder.items.length > 1 ? 's' : ''}
-                        {canManage && (
-                          <>
-                            {' '}
-                            · <span className="font-semibold text-[#16a34a]">{stockOrder.totalPrice.toFixed(2)} €</span> sem IVA
-                          </>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        {canManage ? (
-                        <select
-                          disabled={updatingStockId === stockOrder.id}
-                          value={stockOrder.status}
-                          onChange={(e) => handleStockStatusChange(stockOrder.id, e.target.value as OrderStatus)}
-                          className={`rounded-lg border px-2.5 py-1 text-xs font-bold outline-none cursor-pointer transition ${
-                            stockOrder.status === 'Concluído'
-                              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
-                              : stockOrder.status === 'Produção'
-                              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
-                              : stockOrder.status === 'Cancelado'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
-                          }`}
-                        >
-                          <option value="Em análise">Em análise</option>
-                          <option value="Produção">Produção</option>
-                          <option value="Concluído">Concluído</option>
-                          <option value="Cancelado">Cancelado</option>
-                        </select>
-                        ) : (
-                        <span
-                          className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-bold ${
-                            stockOrder.status === 'Concluído'
-                              ? 'bg-[#e9f7ee] text-[#168443] border-emerald-300'
-                              : stockOrder.status === 'Produção'
-                              ? 'bg-[#fff6df] text-[#a06d00] border-amber-300'
-                              : stockOrder.status === 'Cancelado'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-[#edf3ff] text-[#3664aa] border-blue-300'
-                          }`}
-                        >
-                          {stockOrder.status}
-                        </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => generateStockOrderPDF(stockOrder)}
-                            title="Descarregar PDF do Pedido"
-                            className="flex size-8 items-center justify-center rounded-lg bg-[#16a34a] text-white hover:bg-[#12883d] transition shadow-xs"
-                          >
-                            <Download className="size-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedStockOrder(stockOrder)}
-                            title="Ver Detalhes do Pedido"
-                            className="flex size-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
-                          >
-                            <Eye className="size-4" />
-                          </button>
-                          {canManage && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteStockOrder(stockOrder.id)}
-                            title="Eliminar da BD"
-                            className="flex size-8 items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  )
+                  return rows.map((r) => r.el)
+                })()}
               </tbody>
             </table>
           </div>

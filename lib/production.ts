@@ -131,6 +131,23 @@ export function curvaValue(door: DoorConfig): number {
   return step ? step[1] : CURVA_HEIGHT_STEPS[CURVA_HEIGHT_STEPS.length - 1][1]
 }
 
+// Porta pedonal de serviço para a produção: qual o tipo, de que lado e com que opções — em vez de
+// só "Sim". Tipos de catálogo sem nome fixo aqui (ex. "Porta Anexa") aparecem pelo próprio código.
+const SERVICE_DOOR_TYPE_LABELS: Record<string, string> = {
+  normal: 'Normal (recortada no painel)',
+  'normal-soleira': 'Normal com soleira rebaixada',
+  idealdoor: 'IDEALDOOR',
+}
+const SERVICE_DOOR_POSITION_LABELS: Record<string, string> = { left: 'esquerda', center: 'centro', right: 'direita' }
+export function serviceDoorText(door: DoorConfig): string {
+  const type = SERVICE_DOOR_TYPE_LABELS[door.serviceDoorType] || door.serviceDoorType || 'Sim'
+  const parts = [type]
+  if (door.serviceDoorPosition) parts.push(`posição: ${SERVICE_DOOR_POSITION_LABELS[door.serviceDoorPosition] || door.serviceDoorPosition}`)
+  if (door.serviceDoorPanicBar) parts.push('barra antipânico')
+  if (door.serviceDoorAirSpring) parts.push('mola aérea')
+  return parts.join(' · ')
+}
+
 // Extras relacionados com o tipo de ferragem — mostrados no cartão/secção Ferragens, não na lista
 // genérica de Extras e Adicionais.
 export function ferragemExtras(door: DoorConfig): string[] {

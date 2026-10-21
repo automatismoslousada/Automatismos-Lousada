@@ -16,6 +16,7 @@ import {
   hasExtrasEAdicionais,
   modelLabels,
   panelBreakdown,
+  serviceDoorText,
   varaoValue,
 } from '@/lib/production'
 import {
@@ -406,7 +407,7 @@ function DoorSummary({
           )}
           {door.serviceDoor && (
             <p>
-              <b>Porta de Serviço:</b> Sim
+              <b>Porta de Serviço:</b> {serviceDoorText(door)}
             </p>
           )}
           {door.windows && (

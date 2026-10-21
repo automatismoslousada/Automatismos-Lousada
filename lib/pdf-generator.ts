@@ -16,6 +16,7 @@ import {
   hasExtrasEAdicionais,
   modelLabels,
   panelBreakdown,
+  serviceDoorText,
   varaoValue,
 } from './production'
 
@@ -586,9 +587,10 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
   const pageHeight = doc.internal.pageSize.getHeight()
 
   // 1. Cabeçalho Superior (nome e logótipo, sem faixa colorida)
-  const [logoDataUrl, doorBadgeDataUrl] = await Promise.all([
+  const [logoDataUrl, doorBadgeDataUrl, catalog] = await Promise.all([
     fetchImageAsDataUrl(LOGO_URL),
     fetchImageAsDataUrl(DOOR_BADGE_URL),
+    fetchCatalog(),
   ])
   drawHeaderBranding(doc, logoDataUrl, doorBadgeDataUrl)
 
@@ -826,11 +828,56 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
     currentY = (doc as any).lastAutoTable.finalY + 3.5
   })
 
-  // 6. Resumo de Preços — mesmo na Ficha Técnica (Encomenda), não só no Orçamento comercial.
+  // 6. Resumo de Preços — mesmo na Ficha Técnica (Encomenda), não só no Orçamento comercial: o
+  // preço de cada artigo (mesma tabela do Orçamento) e depois os totais.
   {
-    const ivaRateOrder = order.priceIvaRateOverride ?? IVA_RATE
-    const ivaAmountOrder = order.estimatedPrice * ivaRateOrder
-    const totalWithIvaOrder = order.estimatedPrice + ivaAmountOrder
+    const quote = applyPriceOverrides(
+      calculateMultiDoorQuote(doorsToRender(order).map(doorToPricingInput), catalog),
+      order.priceOverrides,
+      order.priceTotalOverride,
+      order.priceIvaRateOverride
+    )
+    if (currentY > pageHeight - 60) {
+      doc.addPage()
+      currentY = 20
+    }
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(21, 33, 38)
+    doc.text('RESUMO DE PREÇOS', 14, currentY + 4)
+    currentY += 6
+    const money = (v: number | null) => (v == null ? 'Sob consulta' : `${v.toFixed(2)} €`)
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Artigo', 'Especificação', 'Qtd', 'Preço Unit.', 'Total']],
+      body: quote.items.map((item) => [
+        item.label,
+        item.edited ? `${item.description} · Preço editado manualmente` : item.description,
+        `${item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2)} ${item.unit}`,
+        money(item.unitPrice),
+        money(item.lineTotal),
+      ]) as any,
+      theme: 'grid',
+      headStyles: { fillColor: [28, 41, 46], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5, halign: 'left' },
+      bodyStyles: { fontSize: 7, textColor: [30, 41, 46], cellPadding: 1.6 },
+      columnStyles: {
+        0: { cellWidth: 38, fontStyle: 'bold' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 24, halign: 'right' },
+        4: { cellWidth: 24, halign: 'right', fontStyle: 'bold' },
+      },
+      margin: { left: 14, right: 14 },
+    })
+    currentY = (doc as any).lastAutoTable.finalY + 4
+    if (currentY > pageHeight - 40) {
+      doc.addPage()
+      currentY = 20
+    }
+
+    const ivaRateOrder = quote.ivaRate
+    const ivaAmountOrder = quote.ivaAmount
+    const totalWithIvaOrder = quote.totalWithIva
     const priceBoxH = 20
     doc.setFillColor(233, 247, 238)
     doc.roundedRect(pageWidth - 14 - 70, currentY, 70, priceBoxH, 2, 2, 'F')
@@ -841,7 +888,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
     doc.setFontSize(7.5)
     doc.setTextColor(60, 75, 68)
     doc.text('Subtotal (sem IVA)', pageWidth - 14 - 66, currentY + 5)
-    doc.text(`${order.estimatedPrice.toFixed(2)} €`, pageWidth - 18, currentY + 5, { align: 'right' })
+    doc.text(`${quote.total.toFixed(2)} €`, pageWidth - 18, currentY + 5, { align: 'right' })
     doc.text(`IVA (${Math.round(ivaRateOrder * 100)}%)`, pageWidth - 14 - 66, currentY + 9.5)
     doc.text(`${ivaAmountOrder.toFixed(2)} €`, pageWidth - 18, currentY + 9.5, { align: 'right' })
 
@@ -1199,7 +1246,7 @@ function buildExtrasEAdicionaisFields(door: Order): FieldLine[] {
   if (door.automation !== 'Nenhum') fields.push({ label: 'Automatismo', value: door.automation })
   if (door.rail !== 'Nenhum') fields.push({ label: 'Calha', value: door.rail })
   if (door.remotesQuantity > 2) fields.push({ label: 'Comandos', value: String(door.remotesQuantity) })
-  if (door.serviceDoor) fields.push({ label: 'Porta de Serviço', value: 'Sim' })
+  if (door.serviceDoor) fields.push({ label: 'Porta de Serviço', value: serviceDoorText(door) })
   if (door.windows) {
     const panelsTxt =
       door.windowsPanels && door.windowsPanels.length > 0

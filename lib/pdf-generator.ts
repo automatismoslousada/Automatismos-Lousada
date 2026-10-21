@@ -1556,7 +1556,8 @@ export async function buildOrderLabelsPDF(order: Order, copiesPerDoor = 1): Prom
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(LABEL_SIZE_FONT_SIZE)
       doc.setTextColor(21, 33, 38)
-      doc.text(`${door.widthMm} x ${door.heightMm}`, centerX, sizeY, { align: 'center' })
+      const labelDims = finalOpeningDimensions(door)
+      doc.text(`${labelDims.widthMm} x ${labelDims.heightMm}`, centerX, sizeY, { align: 'center' })
 
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(LABEL_CLIENT_FONT_SIZE)

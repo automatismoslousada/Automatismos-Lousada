@@ -34,6 +34,7 @@ import {
   type PricingInput,
 } from '@/lib/pricing'
 import { finalOpeningDimensions } from '@/lib/production'
+import { STOCK_UNIT_OPTIONS, formatStockQty, stockUnitSuffix, stockUnitTakesDims } from '@/lib/stockUnits'
 import {
   ArrowRight,
   Boxes,
@@ -4987,6 +4988,7 @@ function StockPanel({ user }: { user: User }) {
   // cart[id]=3, cartDims[id]={w:2000,h:500}); a área (m²) é calculada a partir daqui.
   const [cartDims, setCartDims] = useState<Record<string, { w: number; h: number }>>({})
   const [showCheckout, setShowCheckout] = useState(false)
+  const [showCart, setShowCart] = useState(false)
   const [portfolioClients, setPortfolioClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
   const [clientSearch, setClientSearch] = useState('')
@@ -5019,7 +5021,7 @@ function StockPanel({ user }: { user: User }) {
     if (product?.unit === 'm') {
       setCartMeters((prev) => (productId in prev ? prev : { ...prev, [productId]: 1 }))
     }
-    if (product?.unit === 'm2') {
+    if (stockUnitTakesDims(product?.unit)) {
       setCartDims((prev) => (productId in prev ? prev : { ...prev, [productId]: { w: 1000, h: 1000 } }))
     }
   }
@@ -5076,8 +5078,9 @@ function StockPanel({ user }: { user: User }) {
       } => !!e.product
     )
   const cartCount = cartEntries.reduce((sum, e) => sum + e.quantity, 0)
+  // Preço da linha = preço × peças × (metros por peça | m² por peça | metros da largura, no 'ml').
   const cartMultiplier = (e: (typeof cartEntries)[number]) =>
-    e.product.unit === 'm' ? e.meters : e.product.unit === 'm2' ? e.squareMeters : 1
+    e.product.unit === 'm' ? e.meters : e.product.unit === 'm2' ? e.squareMeters : e.product.unit === 'ml' ? e.widthMm / 1000 : 1
   const cartTotal = cartEntries.reduce((sum, e) => sum + (e.product.price ?? 0) * e.quantity * cartMultiplier(e), 0)
 
   const handlePickPortfolioClient = (id: string) => {
@@ -5131,7 +5134,7 @@ function StockPanel({ user }: { user: User }) {
       setCheckoutError('Indique o nome do cliente')
       return
     }
-    const missingDims = cartEntries.find((e) => e.product.unit === 'm2' && (e.widthMm < 1 || e.heightMm < 1))
+    const missingDims = cartEntries.find((e) => stockUnitTakesDims(e.product.unit) && (e.widthMm < 1 || e.heightMm < 1))
     if (missingDims) {
       setCheckoutError(`Indique a largura e a altura de "${missingDims.product.name}"`)
       return
@@ -5148,8 +5151,8 @@ function StockPanel({ user }: { user: User }) {
             productId: e.product.id,
             quantity: e.quantity,
             meters: e.product.unit === 'm' ? e.meters : undefined,
-            widthMm: e.product.unit === 'm2' ? e.widthMm : undefined,
-            heightMm: e.product.unit === 'm2' ? e.heightMm : undefined,
+            widthMm: stockUnitTakesDims(e.product.unit) ? e.widthMm : undefined,
+            heightMm: stockUnitTakesDims(e.product.unit) ? e.heightMm : undefined,
           })),
         }),
       })
@@ -5603,8 +5606,7 @@ function StockPanel({ user }: { user: User }) {
               <div className="mt-auto flex items-center justify-between gap-2">
                 <p className="text-sm font-bold text-[#16a34a]">
                   {money(p.price)}
-                  {p.price != null && p.unit === 'm' && <span className="text-xs font-semibold">/m</span>}
-                  {p.price != null && p.unit === 'm2' && <span className="text-xs font-semibold">/m²</span>}
+                  {p.price != null && stockUnitSuffix(p.unit) && <span className="text-xs font-semibold">{stockUnitSuffix(p.unit)}</span>}
                 </p>
                 {p.price != null && (
                   cart[p.id] ? (
@@ -5649,9 +5651,10 @@ function StockPanel({ user }: { user: User }) {
                   )
                 )}
               </div>
-              {p.unit === 'm2' && cart[p.id] ? (() => {
+              {stockUnitTakesDims(p.unit) && cart[p.id] ? (() => {
                 const d = cartDims[p.id] ?? { w: 1000, h: 1000 }
                 const area = (d.w * d.h) / 1e6
+                const isLinear = p.unit === 'ml'
                 const dimInput = (key: 'w' | 'h', label: string) => (
                   <label className="flex flex-1 flex-col gap-0.5">
                     {label}
@@ -5673,8 +5676,11 @@ function StockPanel({ user }: { user: User }) {
                       {dimInput('h', 'Altura (mm)')}
                     </div>
                     <p className="text-[11px] text-[#56655e]">
-                      {area.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m² por peça · Total:{' '}
-                      <b className="text-[#16a34a]">{money((p.price ?? 0) * area * cart[p.id])}</b>
+                      {isLinear
+                        ? `${(d.w / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m lineares por peça (pela largura)`
+                        : `${area.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m² por peça`}{' '}
+                      · Total:{' '}
+                      <b className="text-[#16a34a]">{money((p.price ?? 0) * (isLinear ? d.w / 1000 : area) * cart[p.id])}</b>
                     </p>
                   </div>
                 )
@@ -5693,11 +5699,110 @@ function StockPanel({ user }: { user: User }) {
             </p>
             <button
               type="button"
-              onClick={() => setShowCheckout(true)}
+              onClick={() => setShowCart(true)}
               className="rounded-xl bg-[#16a34a] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#12883d]"
             >
-              Finalizar Pedido
+              Ver carrinho
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Carrinho: cada produto escolhido, com quantidade, medidas e preço da linha — só daqui se
+          avança para Finalizar Pedido. */}
+      {showCart && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={() => setShowCart(false)}>
+          <div
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#e0e8e3] px-5 py-4">
+              <h3 className="text-lg font-bold text-[#152126]">
+                🛒 Carrinho <span className="text-sm font-semibold text-[#8a958f]">({cartCount} artigo{cartCount === 1 ? '' : 's'})</span>
+              </h3>
+              <button type="button" onClick={() => setShowCart(false)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Fechar carrinho">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-3">
+              {cartEntries.length === 0 ? (
+                <p className="py-10 text-center text-sm text-[#87918c]">O carrinho está vazio.</p>
+              ) : (
+                <div className="flex flex-col divide-y divide-[#f0f3f1]">
+                  {cartEntries.map((e) => (
+                    <div key={e.product.id} className="flex items-start gap-3 py-3">
+                      {e.product.photoUrl ? (
+                        <img src={e.product.photoUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover ring-1 ring-black/5" />
+                      ) : (
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-[#f4f7f5] text-gray-300">
+                          <Boxes className="size-5" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-[#152126]">{e.product.name}</p>
+                        <p className="text-xs text-[#6d7973]">{formatStockQty({ ...e, unit: e.product.unit })}</p>
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setCartQty(e.product.id, e.quantity - 1)}
+                            className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
+                            aria-label="Menos uma peça"
+                          >
+                            <Minus className="size-3" />
+                          </button>
+                          <span className="w-5 text-center text-xs font-bold text-[#16a34a]">{e.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => addToCart(e.product.id)}
+                            className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
+                            aria-label="Mais uma peça"
+                          >
+                            <Plus className="size-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCartQty(e.product.id, 0)}
+                            className="ml-1 flex items-center gap-1 rounded px-1.5 py-1 text-[11px] font-bold text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="size-3.5" /> Remover
+                          </button>
+                        </div>
+                      </div>
+                      <p className="shrink-0 text-sm font-bold text-[#16a34a]">
+                        {((e.product.price ?? 0) * e.quantity * cartMultiplier(e)).toFixed(2)} €
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="border-t border-[#e0e8e3] px-5 py-4">
+              <div className="mb-3 flex items-center justify-between text-sm font-bold">
+                <span className="text-[#152126]">Total (sem IVA)</span>
+                <span className="text-lg text-[#16a34a]">{cartTotal.toFixed(2)} €</span>
+              </div>
+              <p className="mb-3 text-[11px] text-[#8a958f]">Para mudar medidas, volte ao produto na lista.</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCart(false)}
+                  className="flex-1 rounded-xl border border-[#dce5df] py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Continuar a comprar
+                </button>
+                <button
+                  type="button"
+                  disabled={cartEntries.length === 0}
+                  onClick={() => {
+                    setShowCart(false)
+                    setShowCheckout(true)
+                  }}
+                  className="flex-1 rounded-xl bg-[#16a34a] py-2.5 text-sm font-bold text-white hover:bg-[#12883d] disabled:opacity-50"
+                >
+                  Finalizar Pedido
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -5826,7 +5931,7 @@ function StockPanel({ user }: { user: User }) {
               <input
                 value={productForm.price}
                 onChange={(e) => setProductForm((p) => ({ ...p, price: e.target.value }))}
-                placeholder={`Preço €${productForm.unit === 'm' ? '/m' : productForm.unit === 'm2' ? '/m²' : ''} (vazio = sob consulta)`}
+                placeholder={`Preço €${stockUnitSuffix(productForm.unit)} (vazio = sob consulta)`}
                 type="number"
                 step="0.01"
                 className="h-10 rounded-lg border border-[#dce5df] px-3 text-sm outline-none focus:border-[#16a34a]"
@@ -5836,9 +5941,11 @@ function StockPanel({ user }: { user: User }) {
                 onChange={(e) => setProductForm((p) => ({ ...p, unit: e.target.value as StockProductUnit }))}
                 className="h-10 rounded-lg border border-[#dce5df] px-3 text-sm outline-none focus:border-[#16a34a]"
               >
-                <option value="un">Vendido à unidade</option>
-                <option value="m">Vendido ao metro</option>
-                <option value="m2">Vendido ao m²</option>
+                {STOCK_UNIT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
               </select>
             </div>
             <label className="flex items-center gap-2 rounded-lg border border-[#dce5df] px-3 text-sm">
@@ -5936,11 +6043,7 @@ function StockPanel({ user }: { user: User }) {
               {cartEntries.map((e) => (
                 <div key={e.product.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
                   <span className="font-bold text-[#152126]">
-                    {e.product.unit === 'm'
-                      ? `${e.quantity} × ${e.meters} m`
-                      : e.product.unit === 'm2'
-                      ? `${e.quantity} × ${e.widthMm}×${e.heightMm} mm (${e.squareMeters.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m²)`
-                      : `${e.quantity}×`}{' '}
+                    {formatStockQty({ ...e, unit: e.product.unit })}{' '}
                     {e.product.name}
                   </span>
                   <span className="text-[#16a34a]">
@@ -7804,17 +7907,7 @@ function Admin({
               {selectedStockOrder.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
                   <span className="font-bold text-[#152126]">
-                    {item.unit === 'm'
-                      ? item.meters != null
-                        ? `${item.quantity} × ${item.meters} m`
-                        : `${item.quantity} m`
-                      : item.unit === 'm2'
-                      ? item.squareMeters != null
-                        ? item.widthMm && item.heightMm
-                          ? `${item.quantity} × ${item.widthMm}×${item.heightMm} mm (${item.squareMeters.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m²)`
-                          : `${item.quantity} × ${item.squareMeters} m²`
-                        : `${item.quantity} m²`
-                      : `${item.quantity}×`}{' '}
+                    {formatStockQty(item)}{' '}
                     {item.productName}
                   </span>
                   {canManage && (

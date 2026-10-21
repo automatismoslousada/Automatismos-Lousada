@@ -61,11 +61,18 @@ export async function POST(request: NextRequest) {
         // meters=2; 3 placas de 1.5m² => quantity=3, squareMeters=1.5) — permite casas decimais.
         const rawQuantity = Number(i.quantity) || 1
         const quantity = Math.max(1, Math.round(rawQuantity))
-        const meters = product.unit === 'm' ? Math.max(0.1, Math.round((Number(i.meters) || 1) * 100) / 100) : undefined
-        // Artigos ao m²: largura × altura de cada peça em mm; a área sai daqui. Pedidos antigos
-        // (só com squareMeters) continuam a ser aceites.
-        const widthMm = product.unit === 'm2' && Number(i.widthMm) >= 1 ? Math.round(Number(i.widthMm)) : undefined
-        const heightMm = product.unit === 'm2' && Number(i.heightMm) >= 1 ? Math.round(Number(i.heightMm)) : undefined
+        // Artigos ao m² e ao metro linear ('ml'): largura × altura de cada peça em mm. No m² a
+        // área sai daqui; no 'ml' o preço é por metro da largura (a altura só segue para a
+        // produção). Pedidos antigos (só com squareMeters/meters) continuam a ser aceites.
+        const takesDims = product.unit === 'm2' || product.unit === 'ml'
+        const widthMm = takesDims && Number(i.widthMm) >= 1 ? Math.round(Number(i.widthMm)) : undefined
+        const heightMm = takesDims && Number(i.heightMm) >= 1 ? Math.round(Number(i.heightMm)) : undefined
+        const meters =
+          product.unit === 'ml' && widthMm && heightMm
+            ? widthMm / 1000
+            : product.unit === 'm' || product.unit === 'ml'
+            ? Math.max(0.1, Math.round((Number(i.meters) || 1) * 100) / 100)
+            : undefined
         const squareMeters =
           product.unit !== 'm2'
             ? undefined
@@ -80,8 +87,8 @@ export async function POST(request: NextRequest) {
           quantity,
           meters,
           squareMeters,
-          widthMm: squareMeters != null ? widthMm : undefined,
-          heightMm: squareMeters != null ? heightMm : undefined,
+          widthMm: takesDims && heightMm ? widthMm : undefined,
+          heightMm: takesDims && widthMm ? heightMm : undefined,
         }
       })
       .filter(
@@ -90,7 +97,7 @@ export async function POST(request: NextRequest) {
         ): i is {
           productId: string
           productName: string
-          unit: 'un' | 'm' | 'm2'
+          unit: 'un' | 'm' | 'm2' | 'ml'
           unitPrice: number | null
           quantity: number
           meters?: number

@@ -237,7 +237,8 @@ export interface StockCategory {
   createdAt: string
 }
 
-export type StockProductUnit = 'un' | 'm' | 'm2'
+// 'ml' = metro linear com largura × altura (ex: bandeiras/padieiras) — ver lib/stockUnits.ts.
+export type StockProductUnit = 'un' | 'm' | 'm2' | 'ml'
 
 export interface StockProduct {
   id: string

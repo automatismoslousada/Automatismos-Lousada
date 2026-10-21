@@ -19,6 +19,7 @@ import {
   serviceDoorText,
   varaoValue,
 } from './production'
+import { formatStockQty, stockUnitSuffix } from './stockUnits'
 
 const LOGO_URL = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-mmBQUrCpo1V3dLippuG4OaIQvVOWxt.jpg'
 // Mesmo emblema aplicado ao painel do portão no configurador 3D — mantido aqui para o desenho ficar fiel ao 3D.
@@ -1904,19 +1905,8 @@ async function buildStockOrderPDF(order: StockOrder): Promise<{ doc: jsPDF; file
 
   const money = (v?: number) => (v == null ? 'Sob consulta' : `${v.toFixed(2)} €`)
   const tableData = order.items.map((item) => {
-    const qty =
-      item.unit === 'm'
-        ? item.meters != null
-          ? `${item.quantity} × ${item.meters} m`
-          : `${item.quantity} m`
-        : item.unit === 'm2'
-        ? item.squareMeters != null
-          ? item.widthMm && item.heightMm
-            ? `${item.quantity} × ${item.widthMm}×${item.heightMm} mm (${item.squareMeters.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m²)`
-            : `${item.quantity} × ${item.squareMeters} m²`
-          : `${item.quantity} m²`
-        : `${item.quantity} un`
-    const unitSuffix = item.unitPrice != null ? (item.unit === 'm' ? '/m' : item.unit === 'm2' ? '/m²' : '') : ''
+    const qty = formatStockQty(item)
+    const unitSuffix = item.unitPrice != null ? stockUnitSuffix(item.unit) : ''
     return [item.productName, qty, `${money(item.unitPrice)}${unitSuffix}`, money(item.lineTotal)]
   })
 

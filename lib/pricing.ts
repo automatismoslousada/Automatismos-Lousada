@@ -79,10 +79,12 @@ export function isQuoteEdited(quote: Pick<PricingResult, 'items' | 'totalEdited'
 const MIN_PANEL_BILLABLE_AREA = 5.5
 
 // Aplicado quando a cor escolhida (via "Outro RAL") não existe no catálogo — não é um item de
-// catálogo, é a política para cores fora da lista habitual.
-const SMOOTH_CUSTOM_PAINT_SURCHARGE = 25 // €/m²
-const RIBBED_CUSTOM_FALLBACK_PRICE = 65
+// catálogo, é a política para cores fora da lista habitual: preço base do painel + pintura
+// especial, tanto no liso (75 + 25) como no canelado (60 + 25).
+const CUSTOM_PAINT_SURCHARGE = 25 // €/m²
+const RIBBED_CUSTOM_FALLBACK_PRICE = 60
 const SMOOTH_CUSTOM_FALLBACK_PRICE = 75
+const CUSTOM_PAINT_NOTE = `cor personalizada — inclui acréscimo de pintura especial (+${CUSTOM_PAINT_SURCHARGE}€/m²)`
 
 function mmToMeters(mm?: string): number {
   const n = parseFloat(mm || '')
@@ -111,15 +113,12 @@ function panelPrice(catalog: CatalogItem[], model: string, colorCode: string): {
   if (model === 'ribbed') {
     const found = findItem(catalog, 'ribbed_color', colorCode)
     if (found?.price != null) return { unitPrice: found.price }
-    return { unitPrice: RIBBED_CUSTOM_FALLBACK_PRICE, note: 'cor personalizada — preço estimado, a confirmar' }
+    return { unitPrice: RIBBED_CUSTOM_FALLBACK_PRICE + CUSTOM_PAINT_SURCHARGE, note: CUSTOM_PAINT_NOTE }
   }
   // smooth (e cassette, sem tabela própria, usa o liso como referência)
   const found = findItem(catalog, 'smooth_color', colorCode)
   if (found?.price != null) return { unitPrice: found.price }
-  return {
-    unitPrice: SMOOTH_CUSTOM_FALLBACK_PRICE + SMOOTH_CUSTOM_PAINT_SURCHARGE,
-    note: `cor personalizada — inclui acréscimo de pintura especial (+${SMOOTH_CUSTOM_PAINT_SURCHARGE}€/m²)`,
-  }
+  return { unitPrice: SMOOTH_CUSTOM_FALLBACK_PRICE + CUSTOM_PAINT_SURCHARGE, note: CUSTOM_PAINT_NOTE }
 }
 
 function tubeItem(

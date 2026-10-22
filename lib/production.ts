@@ -9,22 +9,28 @@ export const modelLabels: Record<string, string> = {
   cassette: 'Painel Almofadado (Cassette)',
 }
 
-// Padieira efetiva: a espessura da Padieira falsa quando há uma escolhida em "Estrutura de
-// Remate" (ver "Padieira" em Painel e Acabamento); senão, o campo "Padieira disponível" tal como
-// preenchido em "Medidas de Vão". É este valor — nunca "Padieira disponível" sozinho — que entra
-// no tipo de ferragem, na Calha L, nos anilhões e no comprimento dos cabos de aço.
-export function effectivePaddingMm(door: DoorConfig): number {
-  return door.header && door.header !== 'Nenhum' ? finalOpeningDimensions(door).topDeductMm : door.paddingMm
+// Versão curta para a etiqueta de rolo (62 mm), onde partilha a linha com a cor.
+export const modelShortLabels: Record<string, string> = {
+  smooth: 'Painel Total Liso',
+  ribbed: 'Painel Canelado',
+  cassette: 'Painel Cassette',
 }
 
-// Ombreira Esquerda/Direita efetiva: a largura da Ombreira falsa desse lado quando há uma
-// escolhida em "Estrutura de Remate"; senão, o campo Ombreira Esquerda/Direita de "Medidas de
-// Vão" tal como preenchido — mesmo raciocínio de effectivePaddingMm, para o lado da porta.
+// Padieira final: a "Padieira disponível" de "Medidas de Vão" mais a Padieira falsa escolhida em
+// "Estrutura de Remate" (o que a falsa tira à altura do vão passa a ser padieira — ex: 100 + 200
+// = 300). Sem padieira falsa é a Padieira disponível tal qual. É este valor que entra no tipo de
+// ferragem, na Calha L, nos anilhões e no comprimento dos cabos de aço.
+export function effectivePaddingMm(door: DoorConfig): number {
+  return door.paddingMm + finalOpeningDimensions(door).topDeductMm
+}
+
+// Ombreira Esquerda/Direita final: a Ombreira de "Medidas de Vão" mais a Ombreira falsa desse
+// lado — mesmo raciocínio de effectivePaddingMm, para os lados da porta.
 export function effectiveLeftShadeMm(door: DoorConfig): number {
-  return door.tubeLeft && door.tubeLeft !== 'Nenhum' ? finalOpeningDimensions(door).leftDeductMm : door.leftShadeMm
+  return door.leftShadeMm + finalOpeningDimensions(door).leftDeductMm
 }
 export function effectiveRightShadeMm(door: DoorConfig): number {
-  return door.tubeRight && door.tubeRight !== 'Nenhum' ? finalOpeningDimensions(door).rightDeductMm : door.rightShadeMm
+  return door.rightShadeMm + finalOpeningDimensions(door).rightDeductMm
 }
 
 // Tipo de ferragem: "Dupla" até 290mm de padieira, "Normal" a partir de 300mm.

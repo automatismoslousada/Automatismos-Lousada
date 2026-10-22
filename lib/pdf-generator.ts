@@ -17,6 +17,7 @@ import {
   finalOpeningDimensions,
   hasExtrasEAdicionais,
   modelLabels,
+  modelShortLabels,
   panelBreakdown,
   serviceDoorText,
   varaoValue,
@@ -1476,7 +1477,7 @@ export async function getProductionSheetPDFBase64(order: Order): Promise<{ dataU
 // =========================================================================
 // ETIQUETAS DE PORTA — para imprimir numa impressora de etiquetas de rolo contínuo (Brother
 // QL-800 do utilizador), uma etiqueta por porta da encomenda. Usa só os 4 campos pedidos: nº de
-// referência, cliente, medidas e cor.
+// referência, cliente, medidas, tipo de painel e cor.
 //
 // O tamanho é fixo em 62 x 28.9mm, horizontal — exatamente o "Formato do papel" (Largura +
 // Comprimento) já configurado nas Propriedades de Impressão da Brother QL-800 do utilizador. A
@@ -1548,15 +1549,17 @@ export async function buildOrderLabelsPDF(order: Order, copiesPerDoor = 1): Prom
       const labelDims = finalOpeningDimensions(door)
       doc.text(`${labelDims.widthMm} x ${labelDims.heightMm}`, centerX, sizeY, { align: 'center' })
 
-      doc.setFont('helvetica', 'normal')
+      doc.setFont('helvetica', 'bold')
       doc.setFontSize(LABEL_CLIENT_FONT_SIZE)
-      doc.setTextColor(45, 58, 51)
+      doc.setTextColor(21, 33, 38)
       doc.text(fitTextWidth(doc, clientName.toUpperCase(), maxTextW), centerX, clientY, { align: 'center' })
 
+      // Tipo de painel e cor na mesma linha — a etiqueta tem altura fixa (ver LABEL_HEIGHT_MM).
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(LABEL_COLOR_FONT_SIZE)
       doc.setTextColor(45, 58, 51)
-      doc.text(fitTextWidth(doc, door.colorCode || '—', maxTextW), centerX, colorY, { align: 'center' })
+      const panelAndColor = [modelShortLabels[door.model] || '', door.colorCode || '—'].filter(Boolean).join(' · ')
+      doc.text(fitTextWidth(doc, panelAndColor, maxTextW), centerX, colorY, { align: 'center' })
     }
   })
 

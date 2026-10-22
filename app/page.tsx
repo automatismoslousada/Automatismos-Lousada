@@ -33,7 +33,14 @@ import {
   formatExtra,
   type PricingInput,
 } from '@/lib/pricing'
-import { falseHeaderText, falseJambText, finalOpeningDimensions } from '@/lib/production'
+import {
+  effectiveLeftShadeMm,
+  effectivePaddingMm,
+  effectiveRightShadeMm,
+  falseHeaderText,
+  falseJambText,
+  finalOpeningDimensions,
+} from '@/lib/production'
 import { STOCK_UNIT_OPTIONS, formatStockQty, stockUnitSuffix, stockUnitTakesDims } from '@/lib/stockUnits'
 import {
   ArrowRight,
@@ -1986,67 +1993,54 @@ function Configurator({
                   </span>
                 </div>
                 <p className="mb-3 text-[10px] text-[#6d7973]">
-                  Calculado automaticamente: vão menos as Ombreiras falsas e a Padieira falsa escolhidas em
-                  &quot;Estrutura de Remate&quot; mais abaixo. Não editável.
+                  Calculado automaticamente a partir das Ombreiras falsas e da Padieira falsa escolhidas em
+                  &quot;Estrutura de Remate&quot; mais abaixo: a largura e a altura perdem essas medidas e a padieira
+                  e as ombreiras ganham-nas. Não editável.
                 </p>
                 {(() => {
-                  const finalOpening = finalOpeningDimensions(buildDoorConfigFromState())
+                  const door = buildDoorConfigFromState()
+                  const finalOpening = finalOpeningDimensions(door)
+                  const box = (label: string, value: number, hint?: string, full?: boolean) => (
+                    <div className={`flex flex-col gap-1 text-[11px] font-bold text-[#35433d]${full ? ' col-span-2' : ''}`}>
+                      {label}
+                      <div className="relative">
+                        <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
+                          {value}
+                        </div>
+                        <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
+                          mm
+                        </span>
+                      </div>
+                      {hint && <span className="text-[10px] font-normal text-[#6d7973]">{hint}</span>}
+                    </div>
+                  )
                   return (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
-                          Largura
-                          <div className="relative">
-                            <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
-                              {finalOpening.widthMm}
-                            </div>
-                            <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
-                              mm
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1 text-[11px] font-bold text-[#35433d]">
-                          Altura
-                          <div className="relative">
-                            <div className="flex h-10 w-full items-center rounded-lg border border-[#d2ddd6] bg-gray-100 px-2.5 pr-8 text-xs font-bold text-[#152126]">
-                              {finalOpening.heightMm}
-                            </div>
-                            <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] font-bold text-[#8e9c94]">
-                              mm
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Descriminação: Ombreira/Padieira falsa descontam da medida final; sem Estrutura de
-                          Remate escolhida, mostra-se o valor de "Medidas de Vão" tal qual, sem descontar. */}
-                      <div className="mt-3 flex flex-col gap-1.5 border-t border-[#e5ece7] pt-3 text-[11px]">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[#6d7973]">Ombreira Esquerda:</span>
-                          <span className="font-bold text-[#35433d]">
-                            {tubeLeft !== 'Nenhum'
-                              ? `${tubeLeft}${finalOpening.leftDeductMm > 0 ? ` · -${finalOpening.leftDeductMm} mm` : ''}`
-                              : `${Math.round(leftShade * 1000)} mm`}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[#6d7973]">Ombreira Direita:</span>
-                          <span className="font-bold text-[#35433d]">
-                            {tubeRight !== 'Nenhum'
-                              ? `${tubeRight}${finalOpening.rightDeductMm > 0 ? ` · -${finalOpening.rightDeductMm} mm` : ''}`
-                              : `${Math.round(rightShade * 1000)} mm`}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[#6d7973]">Padieira Falsa:</span>
-                          <span className="font-bold text-[#35433d]">
-                            {header !== 'Nenhum'
-                              ? `${header}${finalOpening.topDeductMm > 0 ? ` · -${finalOpening.topDeductMm} mm` : ''}`
-                              : `${Math.round(padding * 1000)} mm`}
-                          </span>
-                        </div>
-                      </div>
-                    </>
+                    <div className="grid grid-cols-2 gap-3">
+                      {box('Largura', finalOpening.widthMm)}
+                      {box('Altura', finalOpening.heightMm)}
+                      {box(
+                        'Padieira',
+                        effectivePaddingMm(door),
+                        finalOpening.topDeductMm > 0
+                          ? `${door.paddingMm} disponível + ${finalOpening.topDeductMm} da padieira falsa`
+                          : undefined,
+                        true
+                      )}
+                      {box(
+                        'Ombreira Esquerda',
+                        effectiveLeftShadeMm(door),
+                        finalOpening.leftDeductMm > 0
+                          ? `${door.leftShadeMm} do vão + ${finalOpening.leftDeductMm} da ombreira falsa`
+                          : undefined
+                      )}
+                      {box(
+                        'Ombreira Direita',
+                        effectiveRightShadeMm(door),
+                        finalOpening.rightDeductMm > 0
+                          ? `${door.rightShadeMm} do vão + ${finalOpening.rightDeductMm} da ombreira falsa`
+                          : undefined
+                      )}
+                    </div>
                   )
                 })()}
               </div>

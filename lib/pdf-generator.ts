@@ -1924,7 +1924,7 @@ async function buildStockOrderPDF(order: StockOrder): Promise<{ doc: jsPDF; file
     bodyStyles: { fontSize: 7.5, textColor: [30, 41, 46], cellPadding: 2 },
     columnStyles: {
       0: { cellWidth: 'auto', fontStyle: 'bold' },
-      1: { cellWidth: 18, halign: 'center' },
+      1: { cellWidth: 34, halign: 'center' },
       2: { cellWidth: 28, halign: 'right' },
       3: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
     },

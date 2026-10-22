@@ -35,11 +35,12 @@ export function formatStockQty(item: {
   switch (item.unit) {
     case 'm':
       return item.meters != null ? `${q} × ${n(item.meters)} m` : `${q} m`
+    // Com largura × altura mostra-se só a medida — os metros/m² cobrados já se veem no preço.
     case 'ml':
-      if (dims) return `${q} × ${dims} (${n(item.widthMm! / 1000)} m)`
+      if (dims) return `${q} × ${dims}`
       return item.meters != null ? `${q} × ${n(item.meters)} m` : `${q} m`
     case 'm2':
-      if (dims && item.squareMeters != null) return `${q} × ${dims} (${n(item.squareMeters)} m²)`
+      if (dims) return `${q} × ${dims}`
       return item.squareMeters != null ? `${q} × ${n(item.squareMeters)} m²` : `${q} m²`
     default:
       return `${q} un`

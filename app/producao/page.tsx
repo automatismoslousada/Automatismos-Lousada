@@ -10,6 +10,8 @@ import {
   calhaLValue,
   curvaValue,
   effectivePaddingMm,
+  falseHeaderText,
+  falseJambText,
   ferragemExtras,
   ferragemLabel,
   finalOpeningDimensions,
@@ -374,20 +376,17 @@ function DoorSummary({
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-700">
           {door.tubeLeft && door.tubeLeft !== 'Nenhum' && (
             <p>
-              <b>Ombreira Esquerda:</b> {door.tubeLeft}
-              {door.tubeLengthLeft ? ` × ${door.tubeLengthLeft} mm` : ''}
+              <b>Ombreira Esquerda:</b> {falseJambText(door.tubeLeft, door.tubeWidthLeft, door.tubeLengthLeft)}
             </p>
           )}
           {door.tubeRight && door.tubeRight !== 'Nenhum' && (
             <p>
-              <b>Ombreira Direita:</b> {door.tubeRight}
-              {door.tubeLengthRight ? ` × ${door.tubeLengthRight} mm` : ''}
+              <b>Ombreira Direita:</b> {falseJambText(door.tubeRight, door.tubeWidthRight, door.tubeLengthRight)}
             </p>
           )}
           {door.header !== 'Nenhum' && (
             <p>
-              <b>Padieira Falsa:</b> {door.header} ({door.headerUnits || 1} un
-              {door.headerLength ? ` × ${door.headerLength} mm` : ''})
+              <b>Padieira Falsa:</b> {falseHeaderText(door)}
             </p>
           )}
           {door.automation !== 'Nenhum' && (

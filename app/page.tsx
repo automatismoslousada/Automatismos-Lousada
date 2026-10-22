@@ -33,7 +33,7 @@ import {
   formatExtra,
   type PricingInput,
 } from '@/lib/pricing'
-import { finalOpeningDimensions } from '@/lib/production'
+import { falseHeaderText, falseJambText, finalOpeningDimensions } from '@/lib/production'
 import { STOCK_UNIT_OPTIONS, formatStockQty, stockUnitSuffix, stockUnitTakesDims } from '@/lib/stockUnits'
 import {
   ArrowRight,
@@ -7705,20 +7705,17 @@ function Admin({
                 <p className="text-gray-700">
                   <b>Ombreira Esquerda:</b>{' '}
                   {selectedOrder.tubeLeft !== 'Nenhum'
-                    ? `${selectedOrder.tubeLeft}${selectedOrder.tubeLengthLeft ? ` × ${selectedOrder.tubeLengthLeft} m` : ''}`
+                    ? falseJambText(selectedOrder.tubeLeft, selectedOrder.tubeWidthLeft, selectedOrder.tubeLengthLeft)
                     : 'Nenhuma'}
                 </p>
                 <p className="text-gray-700">
                   <b>Ombreira Direita:</b>{' '}
                   {selectedOrder.tubeRight !== 'Nenhum'
-                    ? `${selectedOrder.tubeRight}${selectedOrder.tubeLengthRight ? ` × ${selectedOrder.tubeLengthRight} m` : ''}`
+                    ? falseJambText(selectedOrder.tubeRight, selectedOrder.tubeWidthRight, selectedOrder.tubeLengthRight)
                     : 'Nenhuma'}
                 </p>
                 <p className="text-gray-700">
-                  <b>Padieira Falsa:</b> {selectedOrder.header}{' '}
-                  {selectedOrder.header !== 'Nenhum'
-                    ? `(${selectedOrder.headerUnits || 1} un${selectedOrder.headerLength ? ` × ${selectedOrder.headerLength} mm` : ''})`
-                    : ''}
+                  <b>Padieira Falsa:</b> {selectedOrder.header !== 'Nenhum' ? falseHeaderText(selectedOrder) : 'Nenhum'}
                 </p>
               </div>
 

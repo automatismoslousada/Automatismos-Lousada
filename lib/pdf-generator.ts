@@ -10,6 +10,8 @@ import {
   effectiveLeftShadeMm,
   effectivePaddingMm,
   effectiveRightShadeMm,
+  falseHeaderText,
+  falseJambText,
   ferragemExtras,
   ferragemLabel,
   finalOpeningDimensions,
@@ -707,13 +709,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
         door.tubeLeft && door.tubeLeft !== 'Nenhum' ? '1' : '0',
         'un',
         door.tubeLeft && door.tubeLeft !== 'Nenhum'
-          ? `${door.tubeLeft}${
-              !door.tubeLeft.toLowerCase().includes('tubo') && door.tubeWidthLeft
-                ? ` (Largura ${door.tubeWidthLeft} mm × Altura ${door.tubeLengthLeft || '-'} mm)`
-                : door.tubeLengthLeft
-                ? ` (Altura ${door.tubeLengthLeft} mm)`
-                : ''
-            }`
+          ? falseJambText(door.tubeLeft, door.tubeWidthLeft, door.tubeLengthLeft)
           : 'Fixação direta à alvenaria',
       ],
       // 3b. Ombreira Falsa Direita
@@ -722,13 +718,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
         door.tubeRight && door.tubeRight !== 'Nenhum' ? '1' : '0',
         'un',
         door.tubeRight && door.tubeRight !== 'Nenhum'
-          ? `${door.tubeRight}${
-              !door.tubeRight.toLowerCase().includes('tubo') && door.tubeWidthRight
-                ? ` (Largura ${door.tubeWidthRight} mm × Altura ${door.tubeLengthRight || '-'} mm)`
-                : door.tubeLengthRight
-                ? ` (Altura ${door.tubeLengthRight} mm)`
-                : ''
-            }`
+          ? falseJambText(door.tubeRight, door.tubeWidthRight, door.tubeLengthRight)
           : 'Fixação direta à alvenaria',
       ],
       // 4. Padieira Falsa em UNIDADES
@@ -737,9 +727,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
         door.header !== 'Nenhum' ? `${door.headerUnits || 1}` : '0',
         'un',
         door.header !== 'Nenhum'
-          ? `${door.header} (${door.headerUnits || 1} un${
-              !door.header.toLowerCase().includes('tubo') && door.headerWidth ? ` · Largura ${door.headerWidth} mm` : ''
-            }${door.headerLength ? ` × ${door.header.toLowerCase().includes('tubo') ? 'Largura' : 'Altura'} ${door.headerLength} mm` : ''})`
+          ? falseHeaderText(door)
           : 'Padieira existente suficiente',
       ],
       // 5. Acessórios
@@ -1229,19 +1217,19 @@ function buildExtrasEAdicionaisFields(door: Order): FieldLine[] {
   if (door.tubeLeft && door.tubeLeft !== 'Nenhum') {
     fields.push({
       label: 'Ombreira Esquerda',
-      value: `${door.tubeLeft}${door.tubeLengthLeft ? ` × ${door.tubeLengthLeft} mm` : ''}`,
+      value: falseJambText(door.tubeLeft, door.tubeWidthLeft, door.tubeLengthLeft),
     })
   }
   if (door.tubeRight && door.tubeRight !== 'Nenhum') {
     fields.push({
       label: 'Ombreira Direita',
-      value: `${door.tubeRight}${door.tubeLengthRight ? ` × ${door.tubeLengthRight} mm` : ''}`,
+      value: falseJambText(door.tubeRight, door.tubeWidthRight, door.tubeLengthRight),
     })
   }
   if (door.header !== 'Nenhum') {
     fields.push({
       label: 'Padieira Falsa',
-      value: `${door.header} (${door.headerUnits || 1} un${door.headerLength ? ` × ${door.headerLength} mm` : ''})`,
+      value: falseHeaderText(door),
     })
   }
   if (door.automation !== 'Nenhum') fields.push({ label: 'Automatismo', value: door.automation })

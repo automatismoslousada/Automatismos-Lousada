@@ -201,6 +201,34 @@ export function finalOpeningDimensions(door: DoorConfig): FinalOpeningDimensions
   }
 }
 
+// Texto de uma Ombreira/Padieira falsa com as medidas a produzir — partilhado pela Folha de
+// Produção, pela página /producao, pela Ficha Técnica e pelo detalhe da encomenda. Num tubo a
+// largura do perfil já vem no nome (ex: "Tubo 75×40"), por isso só se mostra o comprimento:
+// a Altura numa ombreira, a Largura numa padieira (ver finalOpeningDimensions).
+function trimMeasures(widthMm?: string, heightMm?: string): string {
+  const w = widthMm?.trim()
+  const h = heightMm?.trim()
+  if (w && h) return `Largura ${w} × Altura ${h} mm`
+  if (w) return `Largura ${w} mm`
+  if (h) return `Altura ${h} mm`
+  return ''
+}
+
+export function falseJambText(type: string | undefined, widthMm?: string, heightMm?: string): string {
+  if (!type || type === 'Nenhum') return ''
+  const m = trimMeasures(type.toLowerCase().includes('tubo') ? undefined : widthMm, heightMm)
+  return m ? `${type} (${m})` : type
+}
+
+export function falseHeaderText(door: Pick<DoorConfig, 'header' | 'headerUnits' | 'headerLength' | 'headerWidth'>): string {
+  if (!door.header || door.header === 'Nenhum') return ''
+  const m = door.header.toLowerCase().includes('tubo')
+    ? trimMeasures(door.headerLength, undefined)
+    : trimMeasures(door.headerWidth, door.headerLength)
+  const parts = [(door.headerUnits || 1) > 1 ? `${door.headerUnits} un` : '', m].filter(Boolean)
+  return parts.length ? `${door.header} (${parts.join(' · ')})` : door.header
+}
+
 // Mesmas condições usadas para decidir o que aparece dentro do cartão/secção Extras e Adicionais
 // — para não aparecer vazio quando nenhum destes campos tem valor.
 export function hasExtrasEAdicionais(door: DoorConfig): boolean {

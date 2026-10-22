@@ -18,6 +18,7 @@ import {
   hasExtrasEAdicionais,
   modelLabels,
   modelShortLabels,
+  othersText,
   panelBreakdown,
   serviceDoorText,
   varaoValue,
@@ -73,6 +74,7 @@ function doorToPricingInput(d: DoorConfig | Order): PricingInput {
     serviceDoorAirSpring: d.serviceDoorAirSpring,
     extras: d.extras,
     montagens: d.montagens,
+    others: d.others,
     windows: d.windows,
     windowsQuantity: d.windowsQuantity,
     visorMaterial: d.visorMaterial,
@@ -783,6 +785,10 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
       tableData.push(['Montagens', `${door.montagens.length}`, 'un', door.montagens.join(' · ')])
     }
 
+    for (const other of (door.others || []).filter((o) => o.description.trim())) {
+      tableData.push(['Outros', `${other.quantity}`, 'un', other.description.trim()])
+    }
+
     // Medidas do vão tal como medidas, sem descontos — "Portão Seccionado" já mostra as medidas
     // finais. Só aparece quando há de facto algum desconto, senão repetia os mesmos valores.
     if (finalDims.leftDeductMm > 0 || finalDims.rightDeductMm > 0 || finalDims.topDeductMm > 0) {
@@ -1259,6 +1265,7 @@ function buildExtrasEAdicionaisFields(door: Order): FieldLine[] {
     })
   }
   if (door.montagens && door.montagens.length > 0) fields.push({ label: 'Montagens', value: door.montagens.join(', ') })
+  if (othersText(door)) fields.push({ label: 'Outros', value: othersText(door) })
   return fields
 }
 

@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS orders (
   rubber_seal BOOLEAN NOT NULL DEFAULT false,
   extras JSONB NOT NULL DEFAULT '[]',
   montagens JSONB NOT NULL DEFAULT '[]',
+  others JSONB NOT NULL DEFAULT '[]',
   production_spring TEXT,
   production_spring_turns NUMERIC(4, 1),
   production_tambor TEXT,
@@ -133,6 +134,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_door_air_spring BOOLEAN NOT 
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS doors JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS automation_extras JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS montagens JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS others JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'encomenda';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS production_spring TEXT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS production_tambor TEXT;

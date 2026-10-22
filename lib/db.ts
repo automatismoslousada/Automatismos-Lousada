@@ -2,7 +2,7 @@ import { alias } from 'drizzle-orm/pg-core'
 import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
 import { db } from './neon'
 import { orders as ordersTable, users as usersTable } from './schema'
-import { DoorConfig, Order, OrderKind, OrderStatus } from './types'
+import { DoorConfig, Order, OrderKind, OrderStatus, OtherItem } from './types'
 import { applyPriceOverrides, calculateMultiDoorQuote, PricingInput } from './pricing'
 import { getAllCatalogItems } from './catalog'
 
@@ -72,6 +72,7 @@ function toOrder(row: typeof ordersTable.$inferSelect, extras?: OrderExtras): Or
     rubberSeal: row.rubberSeal,
     extras: (row.extras as { name: string; quantity: number }[]) ?? [],
     montagens: (row.montagens as string[]) ?? [],
+    others: (row.others as OtherItem[]) ?? [],
     productionSpring: row.productionSpring ?? undefined,
     productionSpringTurns: row.productionSpringTurns ?? undefined,
     productionTambor: row.productionTambor ?? undefined,
@@ -113,6 +114,7 @@ function toPricingInput(door: Partial<Order> | DoorConfig): PricingInput {
     serviceDoorAirSpring: door.serviceDoorAirSpring || false,
     extras: door.extras || [],
     montagens: door.montagens || [],
+    others: door.others || [],
     windows: door.windows || false,
     windowsQuantity: door.windowsQuantity,
     visorMaterial: door.visorMaterial,
@@ -173,6 +175,7 @@ function doorConfigFromOrder(order: Order): DoorConfig {
     rubberSeal: order.rubberSeal,
     extras: order.extras,
     montagens: order.montagens,
+    others: order.others,
     productionSpring: order.productionSpring,
     productionSpringTurns: order.productionSpringTurns,
     productionTambor: order.productionTambor,

@@ -235,6 +235,14 @@ export function falseHeaderText(door: Pick<DoorConfig, 'header' | 'headerUnits' 
   return parts.length ? `${door.header} (${parts.join(' · ')})` : door.header
 }
 
+// Linhas de "Outros" (artigos fora do catálogo) numa só linha de texto, para a produção.
+export function othersText(door: Pick<DoorConfig, 'others'>): string {
+  return (door.others || [])
+    .filter((o) => o.description.trim())
+    .map((o) => (o.quantity > 1 ? `${o.description.trim()} ×${o.quantity}` : o.description.trim()))
+    .join(', ')
+}
+
 // Mesmas condições usadas para decidir o que aparece dentro do cartão/secção Extras e Adicionais
 // — para não aparecer vazio quando nenhum destes campos tem valor.
 export function hasExtrasEAdicionais(door: DoorConfig): boolean {
@@ -250,6 +258,7 @@ export function hasExtrasEAdicionais(door: DoorConfig): boolean {
       door.rubberSeal ||
       (door.automationExtras && door.automationExtras.length > 0) ||
       (door.extras && door.extras.filter((e) => !FERRAGEM_EXTRA_NAMES.includes(e.name)).length > 0) ||
-      (door.montagens && door.montagens.length > 0)
+      (door.montagens && door.montagens.length > 0) ||
+      othersText(door) !== ''
   )
 }

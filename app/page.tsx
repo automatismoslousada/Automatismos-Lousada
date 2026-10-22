@@ -9,6 +9,7 @@ import {
   DoorConfig,
   Order,
   OrderStatus,
+  OtherItem,
   StockCategory,
   StockOrder,
   StockProduct,
@@ -40,6 +41,7 @@ import {
   falseHeaderText,
   falseJambText,
   finalOpeningDimensions,
+  othersText,
 } from '@/lib/production'
 import { STOCK_UNIT_OPTIONS, formatStockQty, stockUnitSuffix, stockUnitTakesDims } from '@/lib/stockUnits'
 import {
@@ -99,6 +101,7 @@ function doorConfigToPricingInput(d: DoorConfig): PricingInput {
     serviceDoorAirSpring: d.serviceDoorAirSpring,
     extras: d.extras,
     montagens: d.montagens,
+    others: d.others,
     windows: d.windows,
     windowsQuantity: d.windowsQuantity,
     visorMaterial: d.visorMaterial,
@@ -835,6 +838,10 @@ function Configurator({
   // Texto a ser escrito nos campos de metros (ex: "2," a meio de escrever "2,5"), por extra.
   const [extraMetersDraft, setExtraMetersDraft] = useState<Record<string, string>>({})
   const [montagens, setMontagens] = useState<string[]>([])
+  // "Outros" — artigos fora do catálogo escritos à mão; o preço é escrito como texto (ex: "12,5")
+  // em otherPriceDraft, por linha, e só passa para unitPrice quando é um número válido.
+  const [others, setOthers] = useState<OtherItem[]>([])
+  const [otherPriceDraft, setOtherPriceDraft] = useState<Record<number, string>>({})
   const [automation, setAutomation] = useState('Nenhum')
   const [automationExtras, setAutomationExtras] = useState<{ name: string; quantity: number }[]>([])
   const [rail, setRail] = useState('Nenhum')
@@ -1022,6 +1029,7 @@ function Configurator({
       rubberSeal: false,
       extras: [],
       montagens: [],
+      others: [],
       productionFabricada: false,
     }
   }
@@ -1073,6 +1081,7 @@ function Configurator({
     rubberSeal,
     extras,
     montagens,
+    others,
     productionFabricada: false,
   })
 
@@ -1103,6 +1112,8 @@ function Configurator({
     setRubberSeal(d.rubberSeal)
     setExtras(d.extras)
     setMontagens(d.montagens)
+    setOthers(d.others || [])
+    setOtherPriceDraft({})
     setAutomation(d.automation)
     setAutomationExtras(d.automationExtras || [])
     setRail(d.rail)
@@ -1179,6 +1190,7 @@ function Configurator({
       serviceDoorAirSpring,
       extras,
       montagens,
+      others,
       windows,
       windowsQuantity,
       visorMaterial,
@@ -2643,6 +2655,104 @@ function Configurator({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* 9. Outros — artigos que não estão no catálogo, escritos à mão (descrição, quantidade
+                  e preço unitário sem IVA). Cada linha entra no Resumo de Preços como "Outros — …". */}
+              <div className="flex flex-col gap-3 rounded-xl border border-[#e0e8e3] p-3.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#63726a]">Outros</p>
+                  {others.length > 0 && (
+                    <span className="rounded bg-[#e9f7ee] px-2 py-0.5 text-[10px] font-bold text-[#16a34a]">
+                      {others.length} artigo{others.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-[#6d7973]">
+                  Artigos que não estão no catálogo: escreva a descrição, a quantidade e o preço unitário (sem IVA).
+                  Sem preço fica &quot;sob consulta&quot;.
+                </p>
+                {others.map((other, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e5ede8] bg-[#f8faf8] p-2.5"
+                  >
+                    <input
+                      value={other.description}
+                      onChange={(e) =>
+                        setOthers((prev) => prev.map((o, i) => (i === idx ? { ...o, description: e.target.value } : o)))
+                      }
+                      placeholder="Descrição do artigo"
+                      aria-label={`Descrição do artigo ${idx + 1}`}
+                      className="h-8 min-w-0 flex-1 basis-48 rounded border border-[#dce5df] bg-white px-2 text-xs outline-none focus:border-[#16a34a]"
+                    />
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label="Menos uma unidade"
+                        onClick={() =>
+                          setOthers((prev) =>
+                            prev.map((o, i) => (i === idx ? { ...o, quantity: Math.max(1, o.quantity - 1) } : o))
+                          )
+                        }
+                        className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
+                      >
+                        <Minus className="size-3" />
+                      </button>
+                      <span className="w-6 text-center text-xs font-bold text-[#16a34a]">{other.quantity}</span>
+                      <button
+                        type="button"
+                        aria-label="Mais uma unidade"
+                        onClick={() =>
+                          setOthers((prev) => prev.map((o, i) => (i === idx ? { ...o, quantity: o.quantity + 1 } : o)))
+                        }
+                        className="flex size-6 items-center justify-center rounded border bg-white text-gray-600 hover:bg-gray-100"
+                      >
+                        <Plus className="size-3" />
+                      </button>
+                    </div>
+                    <div className="relative w-28">
+                      <input
+                        value={otherPriceDraft[idx] ?? (other.unitPrice != null ? String(other.unitPrice).replace('.', ',') : '')}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          setOtherPriceDraft((prev) => ({ ...prev, [idx]: raw }))
+                          const n = Number(raw.replace(',', '.'))
+                          if (raw.trim() === '' || Number.isFinite(n)) {
+                            setOthers((prev) =>
+                              prev.map((o, i) =>
+                                i === idx ? { ...o, unitPrice: raw.trim() === '' ? null : Math.max(0, n) } : o
+                              )
+                            )
+                          }
+                        }}
+                        inputMode="decimal"
+                        placeholder="Preço un."
+                        aria-label={`Preço unitário do artigo ${idx + 1}`}
+                        className="h-8 w-full rounded border border-[#dce5df] bg-white px-2 pr-6 text-right text-xs outline-none focus:border-[#16a34a]"
+                      />
+                      <span className="pointer-events-none absolute right-2 top-2 text-[10px] font-bold text-[#8e9c94]">€</span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Remover artigo ${idx + 1}`}
+                      onClick={() => {
+                        setOthers((prev) => prev.filter((_, i) => i !== idx))
+                        setOtherPriceDraft({})
+                      }}
+                      className="flex size-8 items-center justify-center rounded text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setOthers((prev) => [...prev, { description: '', quantity: 1, unitPrice: null }])}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#16a34a]/50 py-2 text-xs font-bold text-[#16a34a] transition hover:bg-[#f0faf3]"
+                >
+                  <Plus className="size-3.5" /> Adicionar outro
+                </button>
               </div>
 
               {/* Resumo de Preços — visível em ambos os modos, Encomenda e Orçamento. Cada linha
@@ -7761,6 +7871,11 @@ function Admin({
                       ? selectedOrder.montagens.join(', ')
                       : 'Nenhuma'}
                   </p>
+                  {othersText(selectedOrder) && (
+                    <p className="col-span-2">
+                      <b>Outros:</b> {othersText(selectedOrder)}
+                    </p>
+                  )}
                   {canManage && (
                   <p className="col-span-2 flex items-center justify-between rounded-lg bg-[#e9f7ee] px-3 py-2">
                     <b className="text-[#16a34a]">Preço Estimado:</b>

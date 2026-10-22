@@ -2,7 +2,7 @@
 // Os preços e as próprias opções (cores, tubos, portas, extras, motores...) vêm do catálogo
 // editável em /api/catalog (painel "Catálogo", só admin) — ver lib/catalog.ts. Itens sem preço
 // de catálogo definido ficam marcados como "sob consulta" e não entram no total.
-import { CatalogItem } from './types'
+import { CatalogItem, OtherItem } from './types'
 
 export interface PricingInput {
   width: number // metros
@@ -22,6 +22,7 @@ export interface PricingInput {
   serviceDoorAirSpring?: boolean
   extras: { name: string; quantity: number; unit?: 'm' }[]
   montagens?: string[]
+  others?: OtherItem[]
   windows: boolean
   windowsQuantity?: number
   visorMaterial?: 'vidro' | 'acrilico'
@@ -361,6 +362,27 @@ export function calculateQuote(input: PricingInput, catalog: CatalogItem[]): Pri
       unit: 'un',
       unitPrice,
       lineTotal: unitPrice != null ? extraRemotes * unitPrice : null,
+    })
+  }
+
+  // 9. Outros — artigos fora do catálogo, com o preço escrito à mão no configurador. A label tem
+  // de ser única (os preços editados no Resumo são guardados por label, ver applyPriceOverrides).
+  const otherLabels = new Set<string>()
+  for (const other of input.others || []) {
+    const name = other.description.trim()
+    if (!name) continue
+    let label = `Outros — ${name}`
+    for (let n = 2; otherLabels.has(label); n++) label = `Outros — ${name} (${n})`
+    otherLabels.add(label)
+    const qty = Math.max(1, other.quantity || 1)
+    const unitPrice = other.unitPrice ?? null
+    items.push({
+      label,
+      description: qty > 1 ? `${qty} unidades` : 'Artigo fora de catálogo',
+      qty,
+      unit: 'un',
+      unitPrice,
+      lineTotal: unitPrice != null ? Number((unitPrice * qty).toFixed(2)) : null,
     })
   }
 

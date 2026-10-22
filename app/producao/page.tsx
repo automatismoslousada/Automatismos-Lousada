@@ -17,6 +17,7 @@ import {
   finalOpeningDimensions,
   hasExtrasEAdicionais,
   modelLabels,
+  othersText,
   panelBreakdown,
   serviceDoorText,
   varaoValue,
@@ -440,6 +441,11 @@ function DoorSummary({
           {door.montagens && door.montagens.length > 0 && (
             <p>
               <b>Montagens:</b> {door.montagens.join(', ')}
+            </p>
+          )}
+          {othersText(door) && (
+            <p>
+              <b>Outros:</b> {othersText(door)}
             </p>
           )}
         </div>

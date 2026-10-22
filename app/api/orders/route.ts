@@ -86,6 +86,19 @@ function sanitizeDoorFields(raw: any): DoorConfig {
           }))
       : [],
     montagens: Array.isArray(raw?.montagens) ? raw.montagens.filter((m: any) => typeof m === 'string') : [],
+    // "Outros" — linhas sem descrição ficam de fora; preço em branco = sob consulta (null).
+    others: Array.isArray(raw?.others)
+      ? raw.others
+          .filter((o: any) => o && typeof o.description === 'string' && o.description.trim())
+          .map((o: any) => ({
+            description: o.description.trim().slice(0, 200),
+            quantity: Math.max(1, Math.round(Number(o.quantity) || 1)),
+            unitPrice:
+              o.unitPrice == null || o.unitPrice === '' || !Number.isFinite(Number(o.unitPrice))
+                ? null
+                : Math.max(0, Math.round(Number(o.unitPrice) * 100) / 100),
+          }))
+      : [],
     productionFabricada: false,
   }
 }

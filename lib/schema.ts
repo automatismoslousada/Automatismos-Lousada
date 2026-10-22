@@ -82,6 +82,7 @@ export const orders = pgTable(
     rubberSeal: boolean('rubber_seal').notNull().default(false),
     extras: jsonb('extras').notNull().default([]),
     montagens: jsonb('montagens').notNull().default([]),
+    others: jsonb('others').notNull().default([]),
     // Campos exclusivos da fábrica — espelham sempre a porta 1 de "doors" (ver lib/db.ts), tal
     // como as restantes colunas "soltas" fazem para encomendas antigas sem doors[] preenchido.
     productionSpring: text('production_spring'),

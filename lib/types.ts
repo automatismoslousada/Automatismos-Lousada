@@ -64,6 +64,8 @@ export interface Order {
   // unidades — ou nº de painéis, no caso do Omega (ver PER_PANEL_METER_EXTRAS em lib/pricing.ts).
   extras: { name: string; quantity: number; unit?: 'm'; panel?: number; panels?: number[] }[]
   montagens: string[] // Serviços de montagem/instalação selecionados
+  // "Outros": artigos fora do catálogo escritos à mão no configurador (ver OtherItem).
+  others?: OtherItem[]
   // Campos exclusivos da fábrica (perfil "fabrica", ver /producao) — undefined = a fábrica ainda
   // não definiu um valor explícito; a UI sugere widthMm + 30 como largura de corte sem persistir
   // nada até ser confirmado. Em obras com várias portas, cada porta tem o seu próprio valor (ver
@@ -105,6 +107,10 @@ export interface Order {
   createdAt: string
   updatedAt: string
 }
+
+// Artigo fora do catálogo ("Outros" no configurador): descrição livre, quantidade e preço
+// unitário sem IVA escrito à mão — null = sob consulta, não entra no total.
+export type OtherItem = { description: string; quantity: number; unitPrice: number | null }
 
 // Configuração completa de uma porta dentro de uma obra com várias portas — mesmos campos
 // específicos de porta que existem "soltos" em Order, isolados aqui para poder haver mais do que
@@ -156,6 +162,7 @@ export type DoorConfig = Pick<
   | 'rubberSeal'
   | 'extras'
   | 'montagens'
+  | 'others'
   | 'productionSpring'
   | 'productionSpringTurns'
   | 'productionTambor'

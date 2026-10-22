@@ -7259,6 +7259,16 @@ function Admin({
 
   // Linhas da tabela de Gestão de Encomendas — portas e pedidos de Outros Artigos juntam-se numa só
   // lista ordenada por data (mais recente primeiro), em vez de os artigos ficarem todos no fim.
+  // Data/hora em que a encomenda, orçamento ou pedido de artigos foi registado.
+  const renderDateCell = (createdAt: string) => (
+    <td className="px-5 py-4 whitespace-nowrap">
+      <p className="text-xs font-semibold text-[#2a3630]">{new Date(createdAt).toLocaleDateString('pt-PT')}</p>
+      <p className="text-[10px] text-[#86928b]">
+        {new Date(createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+      </p>
+    </td>
+  )
+
   const renderDoorRow = (order: Order) => (
     <tr key={order.id} className="hover:bg-[#fbfcfb] transition">
       {/* ID / Referência */}
@@ -7280,6 +7290,8 @@ function Admin({
           </span>
         )}
       </td>
+
+      {renderDateCell(order.createdAt)}
 
       {/* Cliente */}
       <td className="px-5 py-4">
@@ -7458,6 +7470,7 @@ function Admin({
           🧰 Artigos
         </span>
       </td>
+      {renderDateCell(stockOrder.createdAt)}
       <td className="px-5 py-4">
         <p className="font-bold text-[#152126] text-xs">{stockOrder.client}</p>
         {stockOrder.clientAddress && (
@@ -7677,11 +7690,12 @@ function Admin({
 
           {/* Tabela de Dados */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] text-left text-sm">
+            <table className="w-full min-w-[1040px] text-left text-sm">
               <thead className="bg-[#fafcfb] text-xs text-[#87918c] border-b border-[#edf1ee]">
                 <tr>
                   <th className="px-5 py-4 font-bold">Referência</th>
                   <th className="px-5 py-4 font-bold">Tipo</th>
+                  <th className="px-5 py-4 font-bold">Data</th>
                   <th className="px-5 py-4 font-bold">Cliente / Obra</th>
                   <th className="px-5 py-4 font-bold">Medidas Vão (L × H)</th>
                   <th className="px-5 py-4 font-bold">Modelo & RAL</th>
@@ -7695,7 +7709,7 @@ function Admin({
                 {(() => {
                   if (loading) return (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-xs text-gray-400">
+                    <td colSpan={10} className="py-12 text-center text-xs text-gray-400">
                       <Loader2 className="mx-auto mb-2 size-6 animate-spin text-[#16a34a]" />
                       A carregar dados da base de dados...
                     </td>
@@ -7715,7 +7729,7 @@ function Admin({
                   ].sort((a, b) => b.at.localeCompare(a.at))
                   if (rows.length === 0) return (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-xs text-gray-500">
+                    <td colSpan={10} className="py-12 text-center text-xs text-gray-500">
                       Nenhuma encomenda encontrada com os filtros selecionados.
                     </td>
                   </tr>

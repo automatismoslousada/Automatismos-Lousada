@@ -698,13 +698,14 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
         'un',
         door.rail !== 'Nenhum' ? door.rail : 'Não aplicável',
       ],
+      // Os 2 comandos que vêm de oferta com o motor não aparecem — só quando há mais do que esses.
       [
         'Comandos / Emissores',
-        door.automation !== 'Nenhum' && door.automation !== 'Garibalde' ? `${door.remotesQuantity || 2}` : '0',
+        door.automation !== 'Nenhum' && door.automation !== 'Garibalde' && (door.remotesQuantity || 2) > 2
+          ? `${door.remotesQuantity}`
+          : '0',
         'un',
-        door.automation !== 'Nenhum' && door.automation !== 'Garibalde'
-          ? 'Emissores rolling code multifrequência de alta segurança'
-          : 'Não aplicável',
+        'Emissores rolling code multifrequência de alta segurança',
       ],
       // 3. Ombreira Falsa Esquerda
       [

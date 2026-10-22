@@ -168,6 +168,11 @@ export async function POST(request: NextRequest) {
     const doorFields = sanitizeDoorFields(body)
     const doors =
       Array.isArray(body.doors) && body.doors.length > 0 ? body.doors.map(sanitizeDoorFields) : [doorFields]
+    // "Outros" (artigos fora do catálogo com preço escrito à mão) é só para comerciais e admins.
+    if (session.role !== 'admin' && session.role !== 'comercial') {
+      doorFields.others = []
+      doors.forEach((d: DoorConfig) => (d.others = []))
+    }
 
     const orderData = {
       kind: (body.kind === 'orcamento' ? 'orcamento' : 'encomenda') as 'encomenda' | 'orcamento',

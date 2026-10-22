@@ -884,6 +884,8 @@ function Configurator({
   // Carteira de clientes — só comerciais e admin têm uma, para escolher um cliente já conhecido
   // em vez de escrever os dados à mão sempre que registam uma encomenda/orçamento.
   const hasClientPortfolio = user.role === 'comercial' || user.role === 'admin'
+  // "Outros" (artigos fora do catálogo, com preço escrito à mão) — só comerciais e admins.
+  const canAddOthers = user.role === 'comercial' || user.role === 'admin'
   const [portfolioClients, setPortfolioClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
   const [savingClient, setSavingClient] = useState(false)
@@ -2658,7 +2660,9 @@ function Configurator({
               </div>
 
               {/* 9. Outros — artigos que não estão no catálogo, escritos à mão (descrição, quantidade
-                  e preço unitário sem IVA). Cada linha entra no Resumo de Preços como "Outros — …". */}
+                  e preço unitário sem IVA). Cada linha entra no Resumo de Preços como "Outros — …".
+                  Só comerciais e admins (ver canAddOthers e app/api/orders/route.ts). */}
+              {canAddOthers && (
               <div className="flex flex-col gap-3 rounded-xl border border-[#e0e8e3] p-3.5">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#63726a]">Outros</p>
@@ -2754,6 +2758,7 @@ function Configurator({
                   <Plus className="size-3.5" /> Adicionar outro
                 </button>
               </div>
+              )}
 
               {/* Resumo de Preços — visível em ambos os modos, Encomenda e Orçamento. Cada linha
                   pode ser editada manualmente (em vez do preço de catálogo calculado); qualquer
@@ -7834,9 +7839,11 @@ function Admin({
                   <p>
                     <b>Calha do Motor:</b> {selectedOrder.rail}
                   </p>
-                  <p>
-                    <b>Qtd Comandos:</b> {selectedOrder.remotesQuantity || 2} emissores
-                  </p>
+                  {(selectedOrder.remotesQuantity || 2) > 2 && (
+                    <p>
+                      <b>Qtd Comandos:</b> {selectedOrder.remotesQuantity} emissores
+                    </p>
+                  )}
                   {selectedOrder.automationExtras && selectedOrder.automationExtras.length > 0 && (
                     <p className="col-span-2">
                       <b>Extras do Motor:</b>{' '}

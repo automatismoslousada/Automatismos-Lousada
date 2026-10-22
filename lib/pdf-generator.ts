@@ -739,7 +739,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
         door.header !== 'Nenhum'
           ? `${door.header} (${door.headerUnits || 1} un${
               !door.header.toLowerCase().includes('tubo') && door.headerWidth ? ` · Largura ${door.headerWidth} mm` : ''
-            }${door.headerLength ? ` × Altura ${door.headerLength} mm` : ''})`
+            }${door.headerLength ? ` × ${door.header.toLowerCase().includes('tubo') ? 'Largura' : 'Altura'} ${door.headerLength} mm` : ''})`
           : 'Padieira existente suficiente',
       ],
       // 5. Acessórios

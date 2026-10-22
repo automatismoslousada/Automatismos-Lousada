@@ -844,7 +844,7 @@ function Configurator({
   // Padieira Falsa (medidas em mm)
   const [header, setHeader] = useState('Nenhum')
   const [headerUnits] = useState(1) // sempre 1 unidade (topo) — já não é editável
-  const [headerLength, setHeaderLength] = useState('200') // altura da padieira falsa em painel
+  const [headerLength, setHeaderLength] = useState('200') // altura da padieira falsa em painel; num tubo, a largura (comprimento) do tubo
   const [headerWidth, setHeaderWidth] = useState('3000') // largura da padieira falsa em painel (acompanha a largura da porta)
 
   const [client, setClient] = useState('')
@@ -2216,7 +2216,7 @@ function Configurator({
                             <input
                               value={headerWidth}
                               onChange={(e) => setHeaderWidth(e.target.value)}
-                              placeholder="ex: 200"
+                              placeholder="ex: 3000"
                               type="number"
                               min="0"
                               step="10"
@@ -2229,15 +2229,17 @@ function Configurator({
                         </div>
                       )}
 
+                      {/* Num tubo este campo é a Largura (comprimento do tubo); o desconto no vão é
+                          o perfil do próprio tubo (ver finalOpeningDimensions em lib/production.ts). */}
                       <div>
                         <span className="text-[10px] font-bold text-gray-600 block mb-1">
-                          Altura:
+                          {header.toLowerCase().includes('tubo') ? 'Largura:' : 'Altura:'}
                         </span>
                         <div className="relative">
                           <input
                             value={headerLength}
                             onChange={(e) => setHeaderLength(e.target.value)}
-                            placeholder="ex: 3000"
+                            placeholder={header.toLowerCase().includes('tubo') ? 'ex: 3000' : 'ex: 200'}
                             type="number"
                             min="0"
                             step="10"

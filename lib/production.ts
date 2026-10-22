@@ -157,20 +157,20 @@ export function ferragemExtras(door: DoorConfig): string[] {
 }
 
 // Largura (mm) do perfil de um tubo, lida do próprio código do catálogo (ex: "Tubo 50×30 de
-// ferro lacado" → 50) — só é preciso para Ombreira falsa do tipo Tubo, que não tem campo de
-// Largura editável no configurador (ao contrário do tipo "Fixo em Painel", ver app/page.tsx).
+// ferro lacado" → 50) — é o que um tubo ocupa do vão, seja Ombreira ou Padieira falsa; os campos
+// que o configurador mostra para tubos são o comprimento a encomendar, nunca o desconto.
 function tubeProfileWidthMm(code: string): number {
   const match = code.match(/(\d+(?:[.,]\d+)?)\s*[×xX]/)
   return match ? parseFloat(match[1].replace(',', '.')) : 0
 }
 
-// Largura (mm) que uma ombreira falsa ocupa do vão, do lado esquerdo/direito: tipo Tubo lê a
-// largura do próprio nome do item (ver tubeProfileWidthMm); qualquer outro tipo (ex: "Fixo em
-// Painel") usa o campo Largura preenchido no configurador.
-function falseJambWidthMm(type: string | undefined, widthMm: string | undefined): number {
+// Medida (mm) que uma ombreira/padieira falsa ocupa do vão: tipo Tubo lê a largura do próprio
+// nome do item (ver tubeProfileWidthMm); qualquer outro tipo (ex: "Fixo em Painel") usa o campo
+// preenchido no configurador — Largura da ombreira, Altura da padieira.
+function falseTrimDeductMm(type: string | undefined, fieldMm: string | undefined): number {
   if (!type || type === 'Nenhum') return 0
   if (type.toLowerCase().includes('tubo')) return tubeProfileWidthMm(type)
-  const n = parseFloat(widthMm || '')
+  const n = parseFloat(fieldMm || '')
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
@@ -186,14 +186,12 @@ export type FinalOpeningDimensions = {
 // falsa (topo) escolhidas em "Estrutura de Remate" — partilhado entre o Configurador, o PDF e a
 // Ficha de Produção, para nunca mostrarem valores diferentes. Os campos de "Medidas de Vão"
 // (Ombreira Esquerda/Direita, Padieira disponível) não entram neste desconto — só o que é
-// escolhido em "Estrutura de Remate" reduz o vão. A Altura da padieira falsa (headerLength) é
-// sempre preenchida pelo utilizador, mesmo para tubos (só a Largura fica escondida nesse caso —
-// ver app/page.tsx), por isso não precisa do mesmo tratamento da ombreira.
+// escolhido em "Estrutura de Remate" reduz o vão. Numa padieira falsa de tubo, headerLength é a
+// Largura do tubo (comprimento a encomendar, ex: 2545 mm) — o desconto é o perfil (75×40 → 75).
 export function finalOpeningDimensions(door: DoorConfig): FinalOpeningDimensions {
-  const leftDeductMm = falseJambWidthMm(door.tubeLeft, door.tubeWidthLeft)
-  const rightDeductMm = falseJambWidthMm(door.tubeRight, door.tubeWidthRight)
-  const topDeductMm =
-    door.header && door.header !== 'Nenhum' ? Math.max(0, parseFloat(door.headerLength || '') || 0) : 0
+  const leftDeductMm = falseTrimDeductMm(door.tubeLeft, door.tubeWidthLeft)
+  const rightDeductMm = falseTrimDeductMm(door.tubeRight, door.tubeWidthRight)
+  const topDeductMm = falseTrimDeductMm(door.header, door.headerLength)
   return {
     widthMm: Math.max(0, Math.round(door.widthMm - leftDeductMm - rightDeductMm)),
     heightMm: Math.max(0, Math.round(door.heightMm - topDeductMm)),

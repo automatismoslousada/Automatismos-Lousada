@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'O pedido não tem artigos' }, { status: 400 })
     }
 
-    // Nunca confiar no preço enviado pelo browser — vai sempre buscar o preço atual de cada
-    // produto à base de dados, para o total não poder ser manipulado no pedido.
+    // O preço vem sempre do produto na base de dados, para o total não poder ser manipulado no
+    // pedido — exceto quando um admin ou comercial o editou no carrinho (item.unitPrice).
+    const canEditPrices = session.role === 'admin' || session.role === 'comercial'
     const productIds = rawItems.map((i: any) => i.productId).filter((id: any) => typeof id === 'string')
     const products = await getProductsByIds(productIds)
 
@@ -79,11 +80,15 @@ export async function POST(request: NextRequest) {
             : widthMm && heightMm
             ? Math.round((widthMm * heightMm) / 100) / 10000
             : Math.max(0.1, Math.round((Number(i.squareMeters) || 1) * 100) / 100)
+        const editedPrice =
+          canEditPrices && i.unitPrice != null && i.unitPrice !== '' && Number.isFinite(Number(i.unitPrice)) && Number(i.unitPrice) >= 0
+            ? Math.round(Number(i.unitPrice) * 100) / 100
+            : undefined
         return {
           productId: i.productId,
           productName: product.name,
           unit: product.unit,
-          unitPrice: product.price,
+          unitPrice: editedPrice ?? product.price,
           quantity,
           meters,
           squareMeters,

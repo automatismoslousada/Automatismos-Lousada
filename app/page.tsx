@@ -5094,8 +5094,20 @@ function StockPanel({ user }: { user: User }) {
   // Carrinho de compras — comercial, cliente (operador) e admin podem comprar; o admin também gere o
   // catálogo. Cada linha é uma peça/medida própria (ex: 1 grelha 2000×500 e outra 1500×500 são duas
   // linhas); adicionar outra vez a mesma medida soma à linha que já existe.
-  type CartLine = { id: string; productId: string; quantity: number; meters: number; widthMm: number; heightMm: number }
+  // unitPrice = preço editado no carrinho (só admin/comercial); sem ele usa o preço do produto.
+  type CartLine = {
+    id: string
+    productId: string
+    quantity: number
+    meters: number
+    widthMm: number
+    heightMm: number
+    unitPrice?: number
+  }
   const [cartLines, setCartLines] = useState<CartLine[]>([])
+  const canEditPrices = user.role === 'admin' || user.role === 'comercial'
+  // Texto escrito no preço de cada linha (ex: "52," a meio de escrever "52,5"), por id da linha.
+  const [linePriceDraft, setLinePriceDraft] = useState<Record<string, string>>({})
   // O que está escrito no cartão de cada produto antes de carregar em "Adicionar".
   type CartDraft = { qty: number; meters: number; w: number; h: number }
   const [cartDrafts, setCartDrafts] = useState<Record<string, CartDraft>>({})
@@ -5152,6 +5164,14 @@ function StockPanel({ user }: { user: User }) {
       return [...prev, { ...line, id: `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }]
     })
   }
+  const setLinePrice = (lineId: string, raw: string) => {
+    setLinePriceDraft((prev) => ({ ...prev, [lineId]: raw }))
+    const n = Number(raw.replace(',', '.'))
+    if (raw.trim() !== '' && !(Number.isFinite(n) && n >= 0)) return
+    setCartLines((prev) =>
+      prev.map((l) => (l.id === lineId ? { ...l, unitPrice: raw.trim() === '' ? undefined : n } : l))
+    )
+  }
   const setLineQty = (lineId: string, qty: number) =>
     setCartLines((prev) =>
       qty <= 0 ? prev.filter((l) => l.id !== lineId) : prev.map((l) => (l.id === lineId ? { ...l, quantity: qty } : l))
@@ -5165,7 +5185,9 @@ function StockPanel({ user }: { user: User }) {
   const lineMultiplier = (unit: StockProductUnit | undefined, meters: number, w: number, h: number) =>
     unit === 'm' ? meters : unit === 'm2' ? (w * h) / 1e6 : unit === 'ml' ? w / 1000 : 1
   const cartMultiplier = (e: (typeof cartEntries)[number]) => lineMultiplier(e.product.unit, e.meters, e.widthMm, e.heightMm)
-  const cartTotal = cartEntries.reduce((sum, e) => sum + (e.product.price ?? 0) * e.quantity * cartMultiplier(e), 0)
+  const linePrice = (e: (typeof cartEntries)[number]) => e.unitPrice ?? e.product.price ?? 0
+  const lineTotal = (e: (typeof cartEntries)[number]) => linePrice(e) * e.quantity * cartMultiplier(e)
+  const cartTotal = cartEntries.reduce((sum, e) => sum + lineTotal(e), 0)
 
   const handlePickPortfolioClient = (id: string) => {
     setSelectedClientId(id)
@@ -5237,6 +5259,7 @@ function StockPanel({ user }: { user: User }) {
             meters: e.product.unit === 'm' ? e.meters : undefined,
             widthMm: stockUnitTakesDims(e.product.unit) ? e.widthMm : undefined,
             heightMm: stockUnitTakesDims(e.product.unit) ? e.heightMm : undefined,
+            unitPrice: canEditPrices && e.unitPrice != null ? e.unitPrice : undefined,
           })),
         }),
       })
@@ -5244,6 +5267,7 @@ function StockPanel({ user }: { user: User }) {
       if (data.success) {
         setCreatedStockOrder(data.stockOrder)
         setCartLines([])
+        setLinePriceDraft({})
         setShowCheckout(false)
         notifyOwnerStock(data.stockOrder)
       } else {
@@ -5863,10 +5887,45 @@ function StockPanel({ user }: { user: User }) {
                             <Trash2 className="size-3.5" /> Remover
                           </button>
                         </div>
+                        {canEditPrices && (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[#6d7973]">
+                            <span className="font-bold text-[#2d3a33]">Preço:</span>
+                            <div className="relative w-24">
+                              <input
+                                value={
+                                  linePriceDraft[e.id] ??
+                                  (e.unitPrice ?? e.product.price ?? 0).toFixed(2).replace('.', ',')
+                                }
+                                onChange={(ev) => setLinePrice(e.id, ev.target.value)}
+                                inputMode="decimal"
+                                aria-label={`Preço de ${e.product.name}`}
+                                className={`h-7 w-full rounded border bg-white px-2 pr-9 text-right text-xs font-bold outline-none focus:border-[#16a34a] ${
+                                  e.unitPrice != null ? 'border-amber-400 text-amber-700' : 'border-[#dce5df] text-[#152126]'
+                                }`}
+                              />
+                              <span className="pointer-events-none absolute right-1.5 top-1.5 text-[10px] font-bold text-[#8e9c94]">
+                                €{stockUnitSuffix(e.product.unit)}
+                              </span>
+                            </div>
+                            {e.unitPrice != null && e.unitPrice !== e.product.price && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLinePriceDraft((prev) => {
+                                    const { [e.id]: _, ...rest } = prev
+                                    return rest
+                                  })
+                                  setCartLines((prev) => prev.map((l) => (l.id === e.id ? { ...l, unitPrice: undefined } : l)))
+                                }}
+                                className="text-[10px] font-bold text-[#16a34a] hover:underline"
+                              >
+                                repor {(e.product.price ?? 0).toFixed(2)} €
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <p className="shrink-0 text-sm font-bold text-[#16a34a]">
-                        {((e.product.price ?? 0) * e.quantity * cartMultiplier(e)).toFixed(2)} €
-                      </p>
+                      <p className="shrink-0 text-sm font-bold text-[#16a34a]">{lineTotal(e).toFixed(2)} €</p>
                     </div>
                   ))}
                 </div>
@@ -6142,9 +6201,7 @@ function StockPanel({ user }: { user: User }) {
                     {formatStockQty({ ...e, unit: e.product.unit })}{' '}
                     {e.product.name}
                   </span>
-                  <span className="text-[#16a34a]">
-                    {((e.product.price ?? 0) * e.quantity * cartMultiplier(e)).toFixed(2)} €
-                  </span>
+                  <span className="text-[#16a34a]">{lineTotal(e).toFixed(2)} €</span>
                 </div>
               ))}
               <div className="flex items-center justify-between px-3 py-2 text-xs font-bold">

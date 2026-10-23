@@ -255,6 +255,8 @@ ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS square_meters NUMERIC(10,
 ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS width_mm INTEGER;
 ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS height_mm INTEGER;
 ALTER TABLE stock_order_items ALTER COLUMN square_meters TYPE NUMERIC(10, 4);
+-- Texto livre escrito no carrinho por um admin/comercial (ex: que serviço é).
+ALTER TABLE stock_order_items ADD COLUMN IF NOT EXISTS description TEXT;
 
 CREATE INDEX IF NOT EXISTS stock_order_items_stock_order_id_idx ON stock_order_items (stock_order_id);
 

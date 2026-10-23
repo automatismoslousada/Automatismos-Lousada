@@ -289,6 +289,8 @@ export interface StockOrderItem {
   widthMm?: number
   heightMm?: number
   lineTotal?: number
+  // Texto livre escrito no carrinho por um admin/comercial (ex: que serviço é).
+  description?: string
 }
 
 // Um pedido de "Outros Artigos" — comprado pelo Cliente (role operador) ou por um comercial em

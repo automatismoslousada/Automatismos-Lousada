@@ -242,6 +242,8 @@ export const stockOrderItems = pgTable(
     widthMm: integer('width_mm'),
     heightMm: integer('height_mm'),
     lineTotal: numeric('line_total', { mode: 'number' }),
+    // Texto livre escrito no carrinho por um admin/comercial (ex: que serviço é).
+    description: text('description'),
   },
   (table) => [index('stock_order_items_stock_order_id_idx').on(table.stockOrderId)]
 )

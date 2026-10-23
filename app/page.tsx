@@ -5103,6 +5103,7 @@ function StockPanel({ user }: { user: User }) {
     widthMm: number
     heightMm: number
     unitPrice?: number
+    description?: string // texto livre (ex: que serviço é) — só admin/comercial
   }
   const [cartLines, setCartLines] = useState<CartLine[]>([])
   const canEditPrices = user.role === 'admin' || user.role === 'comercial'
@@ -5157,8 +5158,16 @@ function StockPanel({ user }: { user: User }) {
       heightMm: takesDims ? d.h : 0,
     }
     setCartLines((prev) => {
+      // Só se junta a uma linha igual que ainda não tenha descrição nem preço próprio — assim dá
+      // para ter, por exemplo, dois "SERVIÇOS" diferentes no mesmo pedido.
       const same = prev.find(
-        (l) => l.productId === productId && l.meters === line.meters && l.widthMm === line.widthMm && l.heightMm === line.heightMm
+        (l) =>
+          l.productId === productId &&
+          l.meters === line.meters &&
+          l.widthMm === line.widthMm &&
+          l.heightMm === line.heightMm &&
+          !l.description &&
+          l.unitPrice == null
       )
       if (same) return prev.map((l) => (l === same ? { ...l, quantity: l.quantity + line.quantity } : l))
       return [...prev, { ...line, id: `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }]
@@ -5269,6 +5278,7 @@ function StockPanel({ user }: { user: User }) {
             widthMm: stockUnitTakesDims(e.product.unit) ? e.widthMm : undefined,
             heightMm: stockUnitTakesDims(e.product.unit) ? e.heightMm : undefined,
             unitPrice: canEditPrices && e.unitPrice != null ? e.unitPrice : undefined,
+            description: canEditPrices && e.description?.trim() ? e.description.trim() : undefined,
           })),
         }),
       })
@@ -5938,6 +5948,20 @@ function StockPanel({ user }: { user: User }) {
                             )}
                           </div>
                         )}
+                        {canEditPrices && (
+                          <input
+                            value={e.description ?? ''}
+                            onChange={(ev) =>
+                              setCartLines((prev) =>
+                                prev.map((l) => (l.id === e.id ? { ...l, description: ev.target.value } : l))
+                              )
+                            }
+                            maxLength={300}
+                            placeholder="Descrição (ex: que serviço é)"
+                            aria-label={`Descrição de ${e.product.name}`}
+                            className="mt-1.5 h-7 w-full rounded border border-[#dce5df] bg-white px-2 text-xs outline-none focus:border-[#16a34a]"
+                          />
+                        )}
                       </div>
                       <p className="shrink-0 text-sm font-bold text-[#16a34a]">{lineTotalText(e)}</p>
                     </div>
@@ -6219,6 +6243,9 @@ function StockPanel({ user }: { user: User }) {
                   <span className="font-bold text-[#152126]">
                     {formatStockQty({ ...e, unit: e.product.unit })}{' '}
                     {e.product.name}
+                    {e.description?.trim() && (
+                      <span className="block font-normal text-[#6d7973]">{e.description.trim()}</span>
+                    )}
                   </span>
                   <span className="text-[#16a34a]">{lineTotalText(e)}</span>
                 </div>
@@ -8099,6 +8126,7 @@ function Admin({
                   <span className="font-bold text-[#152126]">
                     {formatStockQty(item)}{' '}
                     {item.productName}
+                    {item.description && <span className="block font-normal text-[#6d7973]">{item.description}</span>}
                   </span>
                   {canManage && (
                   <span className="text-[#16a34a]">

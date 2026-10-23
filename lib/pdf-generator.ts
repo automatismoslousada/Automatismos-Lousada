@@ -1906,7 +1906,8 @@ async function buildStockOrderPDF(order: StockOrder): Promise<{ doc: jsPDF; file
   const tableData = order.items.map((item) => {
     const qty = formatStockQty(item)
     const unitSuffix = item.unitPrice != null ? stockUnitSuffix(item.unit) : ''
-    return [item.productName, qty, `${money(item.unitPrice)}${unitSuffix}`, money(item.lineTotal)]
+    const name = item.description ? `${item.productName}\n${item.description}` : item.productName
+    return [name, qty, `${money(item.unitPrice)}${unitSuffix}`, money(item.lineTotal)]
   })
 
   autoTable(doc, {

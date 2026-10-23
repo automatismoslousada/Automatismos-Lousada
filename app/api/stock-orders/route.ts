@@ -94,6 +94,10 @@ export async function POST(request: NextRequest) {
           squareMeters,
           widthMm: takesDims && heightMm ? widthMm : undefined,
           heightMm: takesDims && widthMm ? heightMm : undefined,
+          description:
+            canEditPrices && typeof i.description === 'string' && i.description.trim()
+              ? i.description.trim().slice(0, 300)
+              : undefined,
         }
       })
       .filter(
@@ -109,6 +113,7 @@ export async function POST(request: NextRequest) {
           squareMeters?: number
           widthMm?: number
           heightMm?: number
+          description?: string
         } => i !== null
       )
 

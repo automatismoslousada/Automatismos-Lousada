@@ -5185,9 +5185,18 @@ function StockPanel({ user }: { user: User }) {
   const lineMultiplier = (unit: StockProductUnit | undefined, meters: number, w: number, h: number) =>
     unit === 'm' ? meters : unit === 'm2' ? (w * h) / 1e6 : unit === 'ml' ? w / 1000 : 1
   const cartMultiplier = (e: (typeof cartEntries)[number]) => lineMultiplier(e.product.unit, e.meters, e.widthMm, e.heightMm)
-  const linePrice = (e: (typeof cartEntries)[number]) => e.unitPrice ?? e.product.price ?? 0
-  const lineTotal = (e: (typeof cartEntries)[number]) => linePrice(e) * e.quantity * cartMultiplier(e)
-  const cartTotal = cartEntries.reduce((sum, e) => sum + lineTotal(e), 0)
+  // null = sem preço (produto "Sob consulta" sem preço escrito no carrinho) — não entra no total.
+  const linePrice = (e: (typeof cartEntries)[number]): number | null => e.unitPrice ?? e.product.price ?? null
+  const lineTotal = (e: (typeof cartEntries)[number]): number | null => {
+    const price = linePrice(e)
+    return price == null ? null : price * e.quantity * cartMultiplier(e)
+  }
+  const lineTotalText = (e: (typeof cartEntries)[number]) => {
+    const total = lineTotal(e)
+    return total == null ? 'Sob consulta' : `${total.toFixed(2)} €`
+  }
+  const cartTotal = cartEntries.reduce((sum, e) => sum + (lineTotal(e) ?? 0), 0)
+  const cartHasUnpriced = cartEntries.some((e) => linePrice(e) == null)
 
   const handlePickPortfolioClient = (id: string) => {
     setSelectedClientId(id)
@@ -5716,7 +5725,8 @@ function StockPanel({ user }: { user: User }) {
                   {money(p.price)}
                   {p.price != null && stockUnitSuffix(p.unit) && <span className="text-xs font-semibold">{stockUnitSuffix(p.unit)}</span>}
                 </p>
-                {p.price != null && !openBuy[p.id] && (
+                {/* Sem preço ("Sob consulta") só admin/comercial compram — o preço escreve-se no carrinho. */}
+                {(p.price != null || canEditPrices) && !openBuy[p.id] && (
                   <button
                     type="button"
                     onClick={() => setOpenBuy((prev) => ({ ...prev, [p.id]: true }))}
@@ -5726,7 +5736,7 @@ function StockPanel({ user }: { user: User }) {
                   </button>
                 )}
               </div>
-              {p.price != null && openBuy[p.id] && (() => {
+              {(p.price != null || canEditPrices) && openBuy[p.id] && (() => {
                 const d = draftOf(p.id)
                 const takesDims = stockUnitTakesDims(p.unit)
                 const invalid = takesDims && (d.w < 1 || d.h < 1)
@@ -5795,7 +5805,13 @@ function StockPanel({ user }: { user: User }) {
                         : p.unit === 'm2'
                         ? `${per.toLocaleString('pt-PT', { maximumFractionDigits: 3 })} m² por peça · `
                         : ''}
-                      Esta linha: <b className="text-[#16a34a]">{money((p.price ?? 0) * per * Math.max(1, d.qty))}</b>
+                      {p.price != null ? (
+                        <>
+                          Esta linha: <b className="text-[#16a34a]">{money(p.price * per * Math.max(1, d.qty))}</b>
+                        </>
+                      ) : (
+                        'Preço a definir no carrinho.'
+                      )}
                     </p>
                     {inCart > 0 && (
                       <p className="text-[11px] font-bold text-[#16a34a]">
@@ -5892,12 +5908,10 @@ function StockPanel({ user }: { user: User }) {
                             <span className="font-bold text-[#2d3a33]">Preço:</span>
                             <div className="relative w-24">
                               <input
-                                value={
-                                  linePriceDraft[e.id] ??
-                                  (e.unitPrice ?? e.product.price ?? 0).toFixed(2).replace('.', ',')
-                                }
+                                value={linePriceDraft[e.id] ?? (linePrice(e)?.toFixed(2).replace('.', ',') ?? '')}
                                 onChange={(ev) => setLinePrice(e.id, ev.target.value)}
                                 inputMode="decimal"
+                                placeholder="a definir"
                                 aria-label={`Preço de ${e.product.name}`}
                                 className={`h-7 w-full rounded border bg-white px-2 pr-9 text-right text-xs font-bold outline-none focus:border-[#16a34a] ${
                                   e.unitPrice != null ? 'border-amber-400 text-amber-700' : 'border-[#dce5df] text-[#152126]'
@@ -5907,7 +5921,7 @@ function StockPanel({ user }: { user: User }) {
                                 €{stockUnitSuffix(e.product.unit)}
                               </span>
                             </div>
-                            {e.unitPrice != null && e.unitPrice !== e.product.price && (
+                            {e.unitPrice != null && e.product.price != null && e.unitPrice !== e.product.price && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -5925,7 +5939,7 @@ function StockPanel({ user }: { user: User }) {
                           </div>
                         )}
                       </div>
-                      <p className="shrink-0 text-sm font-bold text-[#16a34a]">{lineTotal(e).toFixed(2)} €</p>
+                      <p className="shrink-0 text-sm font-bold text-[#16a34a]">{lineTotalText(e)}</p>
                     </div>
                   ))}
                 </div>
@@ -5936,6 +5950,11 @@ function StockPanel({ user }: { user: User }) {
                 <span className="text-[#152126]">Total (sem IVA)</span>
                 <span className="text-lg text-[#16a34a]">{cartTotal.toFixed(2)} €</span>
               </div>
+              {cartHasUnpriced && (
+                <p className="mb-2 text-[11px] font-bold text-amber-600">
+                  Linhas sem preço seguem &quot;Sob consulta&quot; e não entram no total.
+                </p>
+              )}
               <p className="mb-3 text-[11px] text-[#8a958f]">Cada medida é uma linha. Para outra medida, adicione-a a partir do produto.</p>
               <div className="flex gap-2">
                 <button
@@ -6201,7 +6220,7 @@ function StockPanel({ user }: { user: User }) {
                     {formatStockQty({ ...e, unit: e.product.unit })}{' '}
                     {e.product.name}
                   </span>
-                  <span className="text-[#16a34a]">{lineTotal(e).toFixed(2)} €</span>
+                  <span className="text-[#16a34a]">{lineTotalText(e)}</span>
                 </div>
               ))}
               <div className="flex items-center justify-between px-3 py-2 text-xs font-bold">

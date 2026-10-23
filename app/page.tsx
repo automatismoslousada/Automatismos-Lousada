@@ -1837,7 +1837,7 @@ function Configurator({
                     value={customRal}
                     onChange={(e) => setCustomRal(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && applyCustomRal()}
-                    placeholder="Outro RAL (ex: 5010)"
+                    placeholder="PINTURAS (RAL)"
                     className="h-9 flex-1 rounded-lg border border-[#dce5df] bg-white px-2.5 text-xs font-normal outline-none transition focus:border-[#16a34a]"
                   />
                   <button

@@ -846,12 +846,13 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
     const money = (v: number | null) => (v == null ? 'Sob consulta' : `${v.toFixed(2)} €`)
     autoTable(doc, {
       startY: currentY,
-      head: [['Artigo', 'Especificação', 'Qtd', 'Preço Unit.', 'Total']],
+      // Só o total de cada linha — sem preço unitário (com preços editados à mão o unitário deixava
+      // de bater certo com o total da linha).
+      head: [['Artigo', 'Especificação', 'Qtd', 'Total']],
       body: quote.items.map((item) => [
         item.label,
         item.edited ? `${item.description} · Preço editado manualmente` : item.description,
         `${item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2)} ${item.unit}`,
-        money(item.unitPrice),
         money(item.lineTotal),
       ]) as any,
       theme: 'grid',
@@ -861,8 +862,7 @@ async function buildOrderPDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
         0: { cellWidth: 38, fontStyle: 'bold' },
         1: { cellWidth: 'auto' },
         2: { cellWidth: 20, halign: 'center' },
-        3: { cellWidth: 24, halign: 'right' },
-        4: { cellWidth: 24, halign: 'right', fontStyle: 'bold' },
+        3: { cellWidth: 26, halign: 'right', fontStyle: 'bold' },
       },
       margin: { left: 14, right: 14 },
     })
@@ -1700,17 +1700,17 @@ async function buildQuotePDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
   )
 
   const money = (v: number | null) => (v == null ? 'Sob consulta' : `${v.toFixed(2)} €`)
+  // Só o total de cada linha — sem preço unitário (ver o Resumo de Preços da Ficha Técnica).
   const tableData = quote.items.map((item) => [
     item.label,
     item.edited ? `${item.description} · Preço editado manualmente` : item.description,
     `${item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2)} ${item.unit}`,
-    money(item.unitPrice),
     money(item.lineTotal),
   ])
 
   autoTable(doc, {
     startY: currentY,
-    head: [['Artigo', 'Especificação', 'Qtd', 'Preço Unit.', 'Total']],
+    head: [['Artigo', 'Especificação', 'Qtd', 'Total']],
     body: tableData as any,
     theme: 'grid',
     headStyles: {
@@ -1729,8 +1729,7 @@ async function buildQuotePDF(order: Order): Promise<{ doc: jsPDF; fileName: stri
       0: { cellWidth: 38, fontStyle: 'bold' },
       1: { cellWidth: 'auto' },
       2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 24, halign: 'right' },
-      4: { cellWidth: 24, halign: 'right', fontStyle: 'bold' },
+      3: { cellWidth: 26, halign: 'right', fontStyle: 'bold' },
     },
     margin: { left: 14, right: 14 },
   })
